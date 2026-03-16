@@ -1,40 +1,66 @@
 const std = @import("std");
 
 const rl = @import("raylib");
-const Color = rl.Color;
 
-const component = @import("component.zig");
-const ECS = @import("ecs.zig").ECS;
-const entity = @import("entity.zig");
-const math = @import("math.zig");
+const components = @import("ecs/components.zig");
+const Position = components.Position;
+const Rotation = components.Rotation;
+const Velocity = components.Velocity;
+const ECS = @import("ecs/mod.zig").ECS;
 
-const SCREEN_WIDTH = 1600;
-const SCREEN_HEIGHT = 900;
+// const addComponent = @import("ecs/mod.zig").addComponent;
+
+// const Color = rl.Color;
+
+// const component = @import("component.zig");
+// const entity = @import("entity/mod.zig");
+// const math = @import("math.zig");
+
+// const SCREEN_WIDTH = 1600;
+// const SCREEN_HEIGHT = 900;
 
 pub fn main() !void {
-    var allocator = std.heap.page_allocator;
-    var ecs = try ECS.init(&allocator);
+    const allocator = std.heap.page_allocator;
+    var ecs = ECS.init(allocator);
+
+    // Player definition
+    const player = ecs.entity_id_pool.assign();
+    ecs.addComponent(player, Position{ .x = 0, .y = 0 });
+    ecs.addComponent(player, Rotation{ .angle = 0 });
+    ecs.addComponent(player, Velocity{ .speed = 0 });
+
+    // addComponent(&ecs, player, Position{ .x = 0, .y = 0 });
+
+    // ecs.add_component(player, Component{ .Position = Position{ .x = 0, .y = 0 } });
+    // try ecs.components.position.add_component(player, Position{ .x = 0, .y = 0 });
+    // try ecs.components.position.add_component(player, Position{ .x = 0, .y = 0 });
+
     // rl.initWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Project Neon");
 
     // rl.setTargetFPS(200);
-    const player = ecs.entity_pool.assign();
-    const enemy = ecs.entity_pool.assign();
+    // const player = ecs.entity_id_pool.assign();
+    // const enemy = ecs.entity_id_pool.assign();
 
-    _ = ecs.components.position.add_component(player, component.Position{ .x = 0, .y = 0 });
-    _ = ecs.components.velocity.add_component(player, component.Velocity{ .dx = 1, .dy = 0 });
+    // _ = try ecs.components.position.add_component(player, component.Position{ .x = 0, .y = 0 });
+    // // _ = try ecs.components.velocity.add_component(player, component.Velocity{ .dx = 1, .dy = 0 });
 
-    _ = ecs.components.position.add_component(enemy, component.Position{ .x = 10, .y = 5 });
-    _ = ecs.components.velocity.add_component(enemy, component.Velocity{ .dx = -1, .dy = 0 });
+    // _ = try ecs.components.position.add_component(enemy, component.Position{ .x = 10, .y = 5 });
+    // _ = try ecs.components.velocity.add_component(enemy, component.Velocity{ .dx = -1, .dy = 0 });
 
-    for (ecs.components.position.data.items, 0..) |*pos, i| {
-        const entity_id: u32 = ecs.components.position.entity_ids.items[i];
-        std.debug.print("Entity {d}: Position = ({f}, {f})\n", .{ entity_id, pos.*.x, pos.*.y });
-    }
+    // for (ecs.components.position.data.items, 0..) |*pos, i| {
+    //     const entity_id: u32 = ecs.components.position.entity_ids.items[i];
+    //     std.debug.print("entity_id: {} | ({d}, {d})\n", .{ entity_id, pos.*.x, pos.*.y });
+    // }
 
-    for (ecs.components.velocity.data.items, 0..) |*vel, i| {
-        const entity_id = ecs.components.velocity.entity_ids.items[i];
-        std.debug.print("Entity {d}: Velocity = ({f}, {f})\n", .{ entity_id, vel.*.dx, vel.*.dy });
-    }
+    // for (ecs.components.position.data.items, 0..) |*pos, i| {
+    //     std.debug.print("({d}, {d})\n", .{ pos.*.x, pos.*.y });
+    //     // std.debug.print("Entity {d}: Position = ({f}, {f})\n", .{ entity_id, pos.*.x, pos.*.y });
+    // }
+
+    // for (ecs.components.velocity.data.items, 0..) |*vel, i| {
+    //     const entity_id = ecs.components.velocity.entity_ids.items[i];
+    //     std.debug.print("Entity {d}: Velocity = ({f}, {f})\n", .{ entity_id, vel.*.dx, vel.*.dy });
+    // }
 
     // const image = try rl.loadImage("assets/textures/cube_0.png");
     // const texture = try rl.loadTextureFromImage(image);

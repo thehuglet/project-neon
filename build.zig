@@ -10,9 +10,9 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const raylib_mod = raylib_dep.module("raylib"); // zig binding
-    const raygui_mod = raylib_dep.module("raygui"); // optional
-    const raylib_artifact = raylib_dep.artifact("raylib"); // compiled ralib C library
+    const raylib_mod = raylib_dep.module("raylib");
+    const raygui_mod = raylib_dep.module("raygui");
+    const raylib_artifact = raylib_dep.artifact("raylib");
 
     const exe = b.addExecutable(.{
         .name = "main",
@@ -26,10 +26,8 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    // Link the raylib library into your executable
     exe.linkLibrary(raylib_artifact);
 
-    // Import modules so you can: const rl = @import("raylib");
     exe.root_module.addImport("raylib", raylib_mod);
     exe.root_module.addImport("raygui", raygui_mod);
 

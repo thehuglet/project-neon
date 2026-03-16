@@ -6,12 +6,14 @@ pub fn SparseSet(comptime T: type) type {
     return struct {
         const Self = @This();
 
+        allocator: std.mem.Allocator,
         data: std.ArrayList(T),
         entity_ids: std.ArrayList(u32),
         component_indices: std.ArrayList(u32),
 
-        pub fn init() Self {
+        pub fn init(allocator: std.mem.Allocator) Self {
             return Self{
+                .allocator = allocator,
                 .data = .empty,
                 .entity_ids = .empty,
                 .component_indices = .empty,
@@ -24,19 +26,19 @@ pub fn SparseSet(comptime T: type) type {
             self.component_indices.deinit();
         }
 
-        pub fn add(self: *Self, entity_id: u32, component: T) !void {
+        pub fn addComponent(self: *Self, entity_id: u32, component: T) void {
             const component_index: usize = self.data.items.len;
 
-            try self.data.append(component);
-            try self.entity_ids.append(entity_id);
+            self.data.append(self.allocator, component) catch @panic("Out of memory adding component");
+            self.entity_ids.append(self.allocator, entity_id) catch @panic("Out of memory adding component");
 
             if (entity_id >= self.component_indices.items.len)
-                try self.component_indices.resize(entity_id + 1);
+                self.component_indices.resize(self.allocator, entity_id + 1) catch @panic("Out of memory adding component");
 
             self.component_indices.items[entity_id] = @intCast(component_index);
         }
 
-        pub fn has_component(self: *Self, entity_id: u32) bool {
+        pub fn hasComponent(self: *Self, entity_id: u32) bool {
             // Out of bounds `entity_id` means the
             // entity can't have the component
             if (entity_id >= self.component_indices.items.len) {
@@ -50,8 +52,8 @@ pub fn SparseSet(comptime T: type) type {
             return valid_index and matches_entity;
         }
 
-        pub fn get_component(self: *Self, entity_id: u32) ?*T {
-            if (!self.has_component(entity_id)) {
+        pub fn getComponent(self: *Self, entity_id: u32) ?*T {
+            if (!self.hasComponent(entity_id)) {
                 return null;
             }
 
@@ -59,8 +61,8 @@ pub fn SparseSet(comptime T: type) type {
             return &self.data.items[dense_index];
         }
 
-        pub fn remove_component(self: *Self, entity_id: u32) void {
-            if (!self.has_component(entity_id)) {
+        pub fn removeComponent(self: *Self, entity_id: u32) void {
+            if (!self.hasComponent(entity_id)) {
                 return;
             }
 
