@@ -8,6 +8,8 @@ const Rotation = components.Rotation;
 const Velocity = components.Velocity;
 const ECS = @import("ecs/mod.zig").ECS;
 
+// const ECS = @import("ecs/mod.zig").ECS;
+
 // const addComponent = @import("ecs/mod.zig").addComponent;
 
 // const Color = rl.Color;
@@ -21,13 +23,40 @@ const ECS = @import("ecs/mod.zig").ECS;
 
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
+
     var ecs = ECS.init(allocator);
+    defer ecs.deinit();
 
     // Player definition
-    const player = ecs.entity_id_pool.assign();
-    ecs.addComponent(player, Position{ .x = 0, .y = 0 });
+    const player = ecs.assignEntityId();
+    ecs.addComponent(player, Position{ .x = 10, .y = 15 });
     ecs.addComponent(player, Rotation{ .angle = 0 });
-    ecs.addComponent(player, Velocity{ .speed = 0 });
+    ecs.removeComponent(player, Position);
+
+    ecs.beginQuery();
+    defer ecs.endQuery();
+
+    var query = ecs.query(.{ Position, Rotation });
+    while (query.next()) |item| {
+        // const pos = item.get(Position).?;
+        const rot = item.get(Rotation).?;
+
+        ecs.removeComponent(item.entity, Rotation);
+        std.debug.print("rot: {any}\n", .{rot});
+    }
+
+    // ecs.flush();
+
+    // var query2 = ecs.query(.{ Position, Rotation });
+    // while (query2.next()) |item| {
+    //     // const pos = item.get(Position).?;
+    //     const rot = item.get(Rotation).?;
+
+    //     ecs.removeComponent(item.entity, Rotation);
+    //     std.debug.print("rot2: {any}\n", .{rot});
+    // }
+
+    // _ = ecs.getComponent(player, Position);
 
     // addComponent(&ecs, player, Position{ .x = 0, .y = 0 });
 
