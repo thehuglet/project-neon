@@ -5,6 +5,7 @@ const EntityIdPool = @import("entity.zig").EntityIdPool;
 const SparseSet = @import("sparse_set.zig").SparseSet;
 
 pub const ComponentState = struct {
+    player: SparseSet(components.Player),
     position: SparseSet(components.Position),
     rotation: SparseSet(components.Rotation),
     velocity: SparseSet(components.Velocity),
@@ -15,6 +16,7 @@ pub const ECS = struct {
         T: type,
         field_name: [:0]const u8,
     }{
+        .{ .T = components.Player, .field_name = "player" },
         .{ .T = components.Position, .field_name = "position" },
         .{ .T = components.Rotation, .field_name = "rotation" },
         .{ .T = components.Velocity, .field_name = "velocity" },

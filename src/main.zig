@@ -1,8 +1,10 @@
 const std = @import("std");
 
 const rl = @import("raylib");
+const Color = rl.Color;
 
 const components = @import("ecs/components.zig");
+const Player = components.Player;
 const Position = components.Position;
 const Rotation = components.Rotation;
 const Velocity = components.Velocity;
@@ -12,40 +14,37 @@ const ECS = @import("ecs/mod.zig").ECS;
 
 // const addComponent = @import("ecs/mod.zig").addComponent;
 
-// const Color = rl.Color;
-
 // const component = @import("component.zig");
 // const entity = @import("entity/mod.zig");
 // const math = @import("math.zig");
 
-// const SCREEN_WIDTH = 1600;
-// const SCREEN_HEIGHT = 900;
+const SCREEN_WIDTH = 1600;
+const SCREEN_HEIGHT = 900;
 
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
 
+    // ------ Raylib init ------
+    rl.initWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Project Neon");
+    rl.setTargetFPS(200);
+    defer rl.closeWindow();
+
+    // ------ ECS init ------
     var ecs = ECS.init(allocator);
     defer ecs.deinit();
 
-    // Player definition
+    // TODO: move all this player and texture stuff out of here
+    const texture = try rl.loadTexture("assets/textures/cube_0.png");
+
+    // player definition
     const player = ecs.assignEntityId();
-    ecs.addComponent(player, Position{ .x = 10, .y = 15 });
+    ecs.addComponent(player, Player{});
+    ecs.addComponent(player, Position{ .x = 500, .y = 500 });
     ecs.addComponent(player, Rotation{ .angle = 0 });
-    ecs.removeComponent(player, Position);
 
-    ecs.beginQuery();
-    defer ecs.endQuery();
-
-    var query = ecs.query(.{ Position, Rotation });
-    while (query.next()) |item| {
-        // const pos = item.get(Position).?;
-        const rot = item.get(Rotation).?;
-
-        ecs.removeComponent(item.entity, Rotation);
-        std.debug.print("rot: {any}\n", .{rot});
+    while (!rl.windowShouldClose()) {
+        updateLoop(&ecs, texture);
     }
-
-    // ecs.flush();
 
     // var query2 = ecs.query(.{ Position, Rotation });
     // while (query2.next()) |item| {
@@ -155,6 +154,46 @@ pub fn main() !void {
 
     //     rl.drawTexturePro(texture, source_rec, dest_rec, origin, angle * math.RAD_TO_DEG, Color.white);
     // }
+}
+
+fn updateLoop(ecs: *ECS, texture: rl.Texture) void {
+    // ------ Game logic ------
+    ecs.beginQuery();
+    defer ecs.endQuery();
+
+    // ------ Drawing ------
+    rl.beginDrawing();
+    defer rl.endDrawing();
+
+    rl.clearBackground(Color.black);
+    {
+        var query = ecs.query(.{ Player, Position });
+        while (query.next()) |item| {
+            const pos = item.get(Position).?;
+
+            const source_rec = rl.Rectangle{
+                .x = 0.0,
+                .y = 0.0,
+                .width = @floatFromInt(texture.width),
+                .height = @floatFromInt(texture.height),
+            };
+
+            const scale: f32 = 0.7;
+            const dest_rec = rl.Rectangle{
+                .x = pos.x,
+                .y = pos.y,
+                .width = @as(f32, @floatFromInt(texture.width)) * scale,
+                .height = @as(f32, @floatFromInt(texture.height)) * scale,
+            };
+
+            const origin = rl.Vector2{
+                .x = dest_rec.width / 2,
+                .y = dest_rec.height / 2,
+            };
+
+            rl.drawTexturePro(texture, source_rec, dest_rec, origin, 0, Color.white);
+        }
+    }
 }
 
 pub fn inputDirection() rl.Vector2 {
