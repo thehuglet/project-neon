@@ -41,16 +41,16 @@ pub fn main() !void {
     const shader = try rl.loadShader(null, "assets/shaders/neon_sprite.fs");
     defer rl.unloadShader(shader);
 
-    const render_target: rl.RenderTexture2D = try rl.loadRenderTexture(1920, 1080);
-    rl.setTextureFilter(render_target.texture, rl.TextureFilter.bilinear);
+    const canvas: rl.RenderTexture2D = try rl.loadRenderTexture(1920, 1080);
+    rl.setTextureFilter(canvas.texture, rl.TextureFilter.bilinear);
 
     while (!rl.windowShouldClose()) {
         // ------ Game logic ------
         ecs.beginQuery();
         defer ecs.endQuery();
 
-        // ------ Drawing ------
-        rl.beginTextureMode(render_target);
+        // ------ Drawing to canvas ------
+        rl.beginTextureMode(canvas);
 
         rl.clearBackground(Color.black);
         {
@@ -86,14 +86,14 @@ pub fn main() !void {
 
         rl.endTextureMode();
 
-        // ------ Drawing render texture to screen ------
+        // ------ Drawing canvas to screen ------
         rl.beginDrawing();
         rl.clearBackground(Color.black);
 
         const screen_scale_x = @as(f32, @floatFromInt(rl.getScreenWidth())) / 1920.0;
         const screen_scale_y = @as(f32, @floatFromInt(rl.getScreenHeight())) / 1080.0;
 
-        rl.drawTexturePro(render_target.texture, rl.Rectangle{ .x = 0, .y = 0, .width = 1920, .height = -1080 }, // flip Y
+        rl.drawTexturePro(canvas.texture, rl.Rectangle{ .x = 0, .y = 0, .width = 1920, .height = -1080 }, // flip Y
             rl.Rectangle{ .x = 0, .y = 0, .width = 1920 * screen_scale_x, .height = 1080 * screen_scale_y }, rl.Vector2{ .x = 0, .y = 0 }, 0, Color.white);
 
         rl.endDrawing();
