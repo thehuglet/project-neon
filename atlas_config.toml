@@ -3,4 +3,5 @@ input = "assets/textures/atlases/cube_atlas.png"
 output = "assets/gen_textures/atlases/cube_atlas.png"
 cell_width = 96
 cell_height = 96
-blur_sigma = 2.0
+blur_sigma = 5.0
+alpha_scale = 2.0

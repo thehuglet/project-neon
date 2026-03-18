@@ -14,6 +14,7 @@ struct AtlasConfig {
     cell_width: u32,
     cell_height: u32,
     blur_sigma: f32,
+    alpha_scale: f32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -61,7 +62,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 )
                 .to_image();
 
-                let blurred_img = gaussian_blur_f32(&src_tile, config_entry.blur_sigma);
+                let mut blurred_img = gaussian_blur_f32(&src_tile, config_entry.blur_sigma);
+
+                for px in blurred_img.pixels_mut() {
+                    let alpha: f32 = px.0[3] as f32 * config_entry.alpha_scale;
+                    px.0[3] = alpha.clamp(0.0, 255.0) as u8;
+                }
+
                 imageops::replace(&mut rgba_img, &blurred_img, x as i64, y_dest as i64);
             }
         }
