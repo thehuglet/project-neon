@@ -10,14 +10,6 @@ const Rotation = components.Rotation;
 const Velocity = components.Velocity;
 const ECS = @import("ecs/mod.zig").ECS;
 
-// const ECS = @import("ecs/mod.zig").ECS;
-
-// const addComponent = @import("ecs/mod.zig").addComponent;
-
-// const component = @import("component.zig");
-// const entity = @import("entity/mod.zig");
-// const math = @import("math.zig");
-
 const SCREEN_WIDTH = 1920;
 const SCREEN_HEIGHT = 1080;
 
