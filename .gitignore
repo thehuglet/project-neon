@@ -7,3 +7,5 @@ zig-pkg
 *.o
 *.ilk
 *.pdb
+
+tools/gen-blur-sprites/target/
