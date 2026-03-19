@@ -9,7 +9,7 @@ pub fn playerMovement(ecs: *ECS) void {
     const delta_time: f32 = rl.getFrameTime();
 
     var query = ecs.query(.{
-        c.PlayerMovement,
+        c.Player,
         c.Transform,
     });
     while (query.next()) |item| {

@@ -7,7 +7,6 @@ const a = @import("asset");
 pub fn spawn(ecs: *ECS, assets: *const a.Assets, pos: rl.Vector2) void {
     const entity = ecs.assignEntityId();
     ecs.addComponent(entity, c.Player{});
-    ecs.addComponent(entity, c.PlayerMovement{});
     ecs.addComponent(entity, c.Transform{
         .pos = pos,
         .rotation_rad = 0.0,
