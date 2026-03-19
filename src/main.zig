@@ -35,6 +35,11 @@ pub fn main() !void {
             96,
             96,
         ),
+        .roto_atlas = asset.TextureAtlas.init(
+            "assets/gen_textures/atlases/roto_atlas.png",
+            96,
+            96,
+        ),
         .neon_sprite_shader = asset.NeonSpriteShader.init(
             "assets/shaders/neon_sprite.fs",
         ),
@@ -44,7 +49,8 @@ pub fn main() !void {
     defer assets.neon_sprite_shader.deinit();
 
     // ------ Temp ------
-    entity.player.spawn(&ecs, &assets, rl.Vector2.init(400, 400));
+    entity.player.spawn(&ecs, &assets, .init(400, 400));
+    entity.rotoglow.spawn(&ecs, &assets, .init(700, 400));
 
     // ------ Canvas init ------
     const canvas: rl.RenderTexture2D = try rl.loadRenderTexture(1920, 1080);

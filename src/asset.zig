@@ -54,6 +54,7 @@ pub const NeonSpriteShader = struct {
 
 pub const Assets = struct {
     cube_atlas: TextureAtlas,
+    roto_atlas: TextureAtlas,
     neon_sprite_shader: NeonSpriteShader,
 };
 
