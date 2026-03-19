@@ -63,6 +63,7 @@ pub fn main() !void {
 
         system.playerMovement(&ecs);
         system.playerRotateFacingMouseCosmetic(&ecs);
+        system.spinCosmetic(&ecs);
 
         // ------ Drawing to canvas ------
         {
