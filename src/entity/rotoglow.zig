@@ -17,7 +17,7 @@ pub fn spawn(ecs: *ECS, assets: *const a.Assets, pos: rl.Vector2) void {
         rl.Color.red,
         c.NeonSprite.Options{},
     ));
-    ecs.addComponent(entity, c.Spin{
-        .speed = 40.0,
+    ecs.addComponent(entity, c.SpinCosmetic{
+        .speed = 30.0,
     });
 }
