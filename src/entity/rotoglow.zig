@@ -15,7 +15,9 @@ pub fn spawn(ecs: *ECS, assets: *const a.Assets, pos: rl.Vector2) void {
         assets.roto_atlas,
         0,
         rl.Color.red,
-
         c.NeonSprite.Options{},
     ));
+    ecs.addComponent(entity, c.Spin{
+        .speed = 40.0,
+    });
 }
