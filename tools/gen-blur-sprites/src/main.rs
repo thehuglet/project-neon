@@ -34,8 +34,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let file_contents: String = fs::read_to_string(&args[1])?;
     let atlas_config: Config = toml::from_str(&file_contents)?;
 
-    for (i, config_entry) in atlas_config.atlas.iter().enumerate() {
-        println!("\nProcessing entry {}: {}", i, config_entry.input);
+    for config_entry in atlas_config.atlas.iter() {
+        println!("\nProcessing texture atlas {}", config_entry.input);
 
         let img: DynamicImage = ImageReader::open(&config_entry.input)?.decode()?;
         let mut rgba_img = img.to_rgba8();

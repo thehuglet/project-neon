@@ -7,9 +7,9 @@
     "Zig": {
       "code_actions_on_format": {
         // Run code actions that currently supports adding and removing discards.
-        // "source.fixAll": true,
+        "source.fixAll": false,
         // Run code actions that sorts @import declarations.
-        "source.organizeImports": true,
+        "source.organizeImports": false,
       },
     },
   },

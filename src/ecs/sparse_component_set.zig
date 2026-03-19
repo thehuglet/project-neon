@@ -2,7 +2,7 @@ const std = @import("std");
 
 const EMPTY_COMPONENT_INDEX: u32 = 0xFFFFFFFF;
 
-pub fn SparseSet(comptime T: type) type {
+pub fn SparseComponentSet(comptime T: type) type {
     return struct {
         const Self = @This();
 

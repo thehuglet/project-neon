@@ -1,10 +1,18 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
+    const allocator = std.heap.page_allocator;
+
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // ------- raylib-zig dependency
+    // ------ Atlas generation ------
+    const run_script = b.addSystemCommand(&[_][]const u8{
+        "bash", "tools/gen_atlases.sh", // path relative to build.zig
+    });
+    run_script.step.name = "Generating texture atlases";
+
+    // ------- raylib-zig dependency ------
     const raylib_dep = b.dependency("raylib_zig", .{
         .target = target,
         .optimize = optimize,
@@ -14,20 +22,57 @@ pub fn build(b: *std.Build) void {
     const raygui_mod = raylib_dep.module("raygui");
     const raylib_artifact = raylib_dep.artifact("raylib");
 
+    // ------ All-to-all global module mappings ------
+    var modules = std.ArrayList(struct { name: []const u8, mod: *std.Build.Module }).empty;
+    defer modules.deinit(allocator);
+
+    const included_modules = [_]struct {
+        name: []const u8,
+        path: []const u8,
+    }{
+        .{ .name = "entity", .path = "src/entity/mod.zig" },
+        .{ .name = "component", .path = "src/component/mod.zig" },
+        .{ .name = "system", .path = "src/system/mod.zig" },
+        .{ .name = "ecs", .path = "src/ecs/mod.zig" },
+        .{ .name = "asset", .path = "src/asset.zig" },
+        .{ .name = "math_helpers", .path = "src/math_helpers.zig" },
+    };
+
+    for (included_modules) |info| {
+        const mod = b.addModule(info.name, .{
+            .root_source_file = b.path(info.path),
+            .target = target,
+            .optimize = optimize,
+        });
+        modules.append(allocator, .{ .name = info.name, .mod = mod }) catch @panic("OOM");
+    }
+
+    for (modules.items) |item_a| {
+        for (modules.items) |item_b| {
+            if (!std.mem.eql(u8, item_a.name, item_b.name)) {
+                item_a.mod.addImport(item_b.name, item_b.mod);
+            }
+        }
+
+        item_a.mod.addImport("raylib", raylib_mod);
+        item_a.mod.addImport("raygui", raygui_mod);
+    }
+
     const exe = b.addExecutable(.{
         .name = "main",
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/main.zig"),
             .target = target,
             .optimize = optimize,
-            // .imports = &.{
-            //
-            // },
         }),
     });
 
+    exe.step.dependOn(&run_script.step);
     exe.linkLibrary(raylib_artifact);
 
+    for (modules.items) |item| {
+        exe.root_module.addImport(item.name, item.mod);
+    }
     exe.root_module.addImport("raylib", raylib_mod);
     exe.root_module.addImport("raygui", raygui_mod);
 
@@ -36,7 +81,6 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run the app");
     const run_cmd = b.addRunArtifact(exe);
     run_step.dependOn(&run_cmd.step);
-    // run_cmd.step.dependOn(b.getInstallStep());
 
     if (b.args) |args| {
         run_cmd.addArgs(args);

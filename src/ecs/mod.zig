@@ -1,50 +1,14 @@
 const std = @import("std");
 
-const components = @import("components.zig");
-const EntityIdPool = @import("entity.zig").EntityIdPool;
-const SparseSet = @import("sparse_set.zig").SparseSet;
+const ComponentRegistry = @import("component").Registry;
 
-pub const ComponentState = struct {
-    player: SparseSet(components.Player),
-    position: SparseSet(components.Position),
-    rotation: SparseSet(components.Rotation),
-    velocity: SparseSet(components.Velocity),
-};
+const EntityIdPool = @import("entity_id_pool.zig").EntityIdPool;
+const SparseComponentSet = @import("sparse_component_set.zig").SparseComponentSet;
 
 pub const ECS = struct {
-    pub const ComponentList = [_]struct {
-        T: type,
-        field_name: [:0]const u8,
-    }{
-        .{ .T = components.Player, .field_name = "player" },
-        .{ .T = components.Position, .field_name = "position" },
-        .{ .T = components.Rotation, .field_name = "rotation" },
-        .{ .T = components.Velocity, .field_name = "velocity" },
-    };
-
-    const ComponentUnion = blk: {
-        const field_count = ComponentList.len;
-        var fields: [field_count]std.builtin.Type.UnionField = undefined;
-        for (ComponentList, 0..) |entry, i| {
-            fields[i] = .{
-                .name = entry.field_name,
-                .type = entry.T,
-                .alignment = @alignOf(entry.T),
-            };
-        }
-        break :blk @Type(.{
-            .@"union" = .{
-                .layout = .auto,
-                .tag_type = null,
-                .fields = fields[0..],
-                .decls = &.{},
-            },
-        });
-    };
-
     const ComponentTag = blk: {
-        var enum_fields: [ComponentList.len]std.builtin.Type.EnumField = undefined;
-        for (ComponentList, 0..) |entry, i| {
+        var enum_fields: [ComponentRegistry.len]std.builtin.Type.EnumField = undefined;
+        for (ComponentRegistry, 0..) |entry, i| {
             enum_fields[i] = .{
                 .name = entry.field_name,
                 .value = i,
@@ -60,9 +24,52 @@ pub const ECS = struct {
         });
     };
 
+    const ComponentUnion = blk: {
+        const field_count = ComponentRegistry.len;
+        var fields: [field_count]std.builtin.Type.UnionField = undefined;
+        for (ComponentRegistry, 0..) |entry, i| {
+            fields[i] = .{
+                .name = entry.field_name,
+                .type = entry.T,
+                .alignment = @alignOf(entry.T),
+            };
+        }
+        break :blk @Type(.{
+            .@"union" = .{
+                .layout = .auto,
+                .tag_type = ComponentTag,
+                .fields = fields[0..],
+                .decls = &.{},
+            },
+        });
+    };
+
+    const ComponentState = blk: {
+        const field_count = ComponentRegistry.len;
+        var fields: [field_count]std.builtin.Type.StructField = undefined;
+        for (ComponentRegistry, 0..) |entry, i| {
+            const FieldType = SparseComponentSet(entry.T);
+            fields[i] = .{
+                .name = entry.field_name,
+                .type = FieldType,
+                .default_value_ptr = null,
+                .is_comptime = false,
+                .alignment = @alignOf(FieldType),
+            };
+        }
+        break :blk @Type(.{
+            .@"struct" = .{
+                .layout = .auto,
+                .fields = fields[0..],
+                .decls = &.{},
+                .is_tuple = false,
+            },
+        });
+    };
+
     const Operation = union(enum) {
-        add: struct { entity: usize, comp: ComponentUnion },
-        remove: struct { entity: usize, tag: ComponentTag },
+        add: struct { entity_id: usize, comp: ComponentUnion },
+        remove: struct { entity_id: usize, tag: ComponentTag },
     };
 
     pub fn Query(comptime ComponentTypes: anytype) type {
@@ -70,7 +77,7 @@ pub const ECS = struct {
             const Self = @This();
 
             ecs: *ECS,
-            primary_set: *SparseSet(ComponentTypes[0]),
+            primary_set: *SparseComponentSet(ComponentTypes[0]),
             index: usize,
 
             pub fn init(ecs: *ECS) Self {
@@ -106,14 +113,14 @@ pub const ECS = struct {
     pub fn QueryItem(_: anytype) type {
         return struct {
             ecs: *ECS,
-            entity: usize,
+            entity_id: usize,
 
-            fn init(ecs: *ECS, entity: usize) @This() {
-                return .{ .ecs = ecs, .entity = entity };
+            fn init(ecs: *ECS, entity_id: usize) @This() {
+                return .{ .ecs = ecs, .entity_id = entity_id };
             }
 
             pub fn get(self: @This(), comptime T: type) ?*T {
-                return self.ecs.getComponent(self.entity, T);
+                return self.ecs.getComponent(self.entity_id, T);
             }
         };
     }
@@ -126,8 +133,8 @@ pub const ECS = struct {
 
     pub fn init(allocator: std.mem.Allocator) ECS {
         var ecs: ECS = undefined;
-        inline for (ComponentList) |C| {
-            @field(&ecs.components, C.field_name) = SparseSet(C.T).init(allocator);
+        inline for (ComponentRegistry) |C| {
+            @field(&ecs.components, C.field_name) = SparseComponentSet(C.T).init(allocator);
         }
         ecs.entity_id_pool = EntityIdPool.init();
         ecs.operation_queue = .empty;
@@ -138,39 +145,33 @@ pub const ECS = struct {
 
     pub fn deinit(ecs: *ECS) void {
         ecs.operation_queue.deinit(ecs.allocator);
-        inline for (ComponentList) |C| {
+        inline for (ComponentRegistry) |C| {
             @field(&ecs.components, C.field_name).deinit();
         }
     }
 
-    pub fn addComponent(ecs: *ECS, entity: usize, value: anytype) void {
+    pub fn addComponent(ecs: *ECS, entity_id: usize, value: anytype) void {
         const T = @TypeOf(value);
 
-        comptime var tag: ?ComponentTag = null;
-        inline for (ComponentList, 0..) |entry, i| {
-            if (T == entry.T) {
-                tag = @as(ComponentTag, @enumFromInt(i));
-                break;
-            }
-        }
-
         if (ecs.query_active) {
-            var comp: ComponentUnion = undefined;
-            inline for (ComponentList) |entry| {
-                if (T == entry.T) {
-                    @field(comp, entry.field_name) = value;
-                    break;
+            const comp = blk: {
+                inline for (ComponentRegistry) |entry| {
+                    if (T == entry.T) {
+                        break :blk @unionInit(ComponentUnion, entry.field_name, value);
+                    }
                 }
-            }
-            ecs.operation_queue.append(ecs.allocator, .{ .add = .{ .entity = entity, .comp = comp } }) catch @panic("Out of memory");
+                // T is guaranteed to be in the registry
+                unreachable;
+            };
+            ecs.operation_queue.append(ecs.allocator, .{ .add = .{ .entity_id = entity_id, .comp = comp } }) catch @panic("Out of memory");
         } else {
-            getSparseSetPtr(&ecs.components, T).addComponent(entity, value);
+            getSparseSetPtr(&ecs.components, T).addComponent(entity_id, value);
         }
     }
 
-    pub fn removeComponent(ecs: *ECS, entity: usize, comptime T: type) void {
+    pub fn removeComponent(ecs: *ECS, entity_id: usize, comptime T: type) void {
         comptime var tag: ?ComponentTag = null;
-        inline for (ComponentList, 0..) |entry, i| {
+        inline for (ComponentRegistry, 0..) |entry, i| {
             if (T == entry.T) {
                 tag = @as(ComponentTag, @enumFromInt(i));
                 break;
@@ -179,22 +180,22 @@ pub const ECS = struct {
         const tag_value = tag orelse @compileError("Unsupported component type");
 
         if (ecs.query_active) {
-            ecs.operation_queue.append(ecs.allocator, .{ .remove = .{ .entity = entity, .tag = tag_value } }) catch @panic("Out of memory");
+            ecs.operation_queue.append(ecs.allocator, .{ .remove = .{ .entity_id = entity_id, .tag = tag_value } }) catch @panic("Out of memory");
         } else {
-            getSparseSetPtr(&ecs.components, T).removeComponent(entity);
+            getSparseSetPtr(&ecs.components, T).removeComponent(entity_id);
         }
     }
 
-    pub fn hasComponent(ecs: *ECS, entity: usize, comptime T: type) bool {
-        return getSparseSetPtr(&ecs.components, T).hasComponent(entity);
+    pub fn hasComponent(ecs: *ECS, entity_id: usize, comptime T: type) bool {
+        return getSparseSetPtr(&ecs.components, T).hasComponent(entity_id);
     }
 
-    pub fn getComponent(ecs: *ECS, entity: usize, comptime T: type) ?*T {
-        return getSparseSetPtr(&ecs.components, T).getComponent(entity);
+    pub fn getComponent(ecs: *ECS, entity_id: usize, comptime T: type) ?*T {
+        return getSparseSetPtr(&ecs.components, T).getComponent(entity_id);
     }
 
-    fn getSparseSetPtr(comps: *ComponentState, comptime T: type) *SparseSet(T) {
-        inline for (ComponentList) |entry| {
+    fn getSparseSetPtr(comps: *ComponentState, comptime T: type) *SparseComponentSet(T) {
+        inline for (ComponentRegistry) |entry| {
             if (T == entry.T) {
                 return &@field(comps, entry.field_name);
             }
@@ -214,18 +215,17 @@ pub const ECS = struct {
         for (ecs.operation_queue.items) |op| {
             switch (op) {
                 .add => |a| {
-                    inline for (ComponentList) |entry| {
-                        if (@hasField(@TypeOf(a.comp), entry.field_name)) {
-                            const value = @field(a.comp, entry.field_name);
-                            getSparseSetPtr(&ecs.components, entry.T).addComponent(a.entity, value);
-                            break;
-                        }
+                    switch (a.comp) {
+                        inline else => |value| {
+                            const T = @TypeOf(value);
+                            getSparseSetPtr(&ecs.components, T).addComponent(a.entity_id, value);
+                        },
                     }
                 },
                 .remove => |r| {
-                    inline for (ComponentList, 0..) |entry, i| {
+                    inline for (ComponentRegistry, 0..) |entry, i| {
                         if (@intFromEnum(r.tag) == i) {
-                            getSparseSetPtr(&ecs.components, entry.T).removeComponent(r.entity);
+                            getSparseSetPtr(&ecs.components, entry.T).removeComponent(r.entity_id);
                             break;
                         }
                     }
