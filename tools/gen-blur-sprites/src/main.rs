@@ -1,5 +1,7 @@
 use image::DynamicImage;
+use image::GrayImage;
 use image::ImageReader;
+use image::Luma;
 use image::imageops;
 use imageproc::filter::gaussian_blur_f32;
 use serde::Deserialize;
@@ -62,14 +64,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 )
                 .to_image();
 
-                let mut blurred_img = gaussian_blur_f32(&src_tile, config_entry.blur_sigma);
+                let tile_w: u32 = src_tile.width();
+                let tile_h: u32 = src_tile.height();
 
-                for px in blurred_img.pixels_mut() {
-                    let alpha: f32 = px.0[3] as f32 * config_entry.alpha_scale;
-                    px.0[3] = alpha.clamp(0.0, 255.0) as u8;
+                let mut alpha_img = GrayImage::new(tile_w, tile_h);
+                for y in 0..tile_h {
+                    for x in 0..tile_w {
+                        let a: u8 = src_tile.get_pixel(x, y).0[3];
+                        alpha_img.put_pixel(x, y, Luma([a]));
+                    }
                 }
 
-                imageops::replace(&mut rgba_img, &blurred_img, x as i64, y_dest as i64);
+                let blurred_alpha = gaussian_blur_f32(&alpha_img, config_entry.blur_sigma);
+
+                let mut glow_tile = image::RgbaImage::new(tile_w, tile_h);
+                for y in 0..tile_h {
+                    for x in 0..tile_w {
+                        let blurred_a = blurred_alpha.get_pixel(x, y).0[0] as f32;
+                        let new_a = (blurred_a * config_entry.alpha_scale).clamp(0.0, 255.0) as u8;
+                        glow_tile.put_pixel(x, y, image::Rgba([255, 255, 255, new_a]));
+                    }
+                }
+
+                imageops::replace(&mut rgba_img, &glow_tile, x as i64, y_dest as i64);
             }
         }
 
