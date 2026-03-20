@@ -7,10 +7,15 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     // ------ Atlas generation ------
-    const run_script = b.addSystemCommand(&[_][]const u8{
-        "bash", "tools/gen_atlases.sh", // path relative to build.zig
+    const run_atlas_gen_cmd = b.addSystemCommand(&.{
+        "cargo",
+        "run",
+        "--release",
+        "--manifest-path",
+        "tools/gen-blur-sprites/Cargo.toml",
+        "atlas_config.toml",
     });
-    run_script.step.name = "Generating texture atlases";
+    run_atlas_gen_cmd.step.name = "Generating texture atlases";
 
     // ------- raylib-zig dependency ------
     const raylib_dep = b.dependency("raylib_zig", .{
@@ -67,7 +72,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    exe.step.dependOn(&run_script.step);
+    exe.step.dependOn(&run_atlas_gen_cmd.step);
     exe.linkLibrary(raylib_artifact);
 
     for (modules.items) |item| {
