@@ -9,3 +9,5 @@ zig-pkg
 *.pdb
 
 tools/gen-blur-sprites/target/
+
+assets/gen_textures/
