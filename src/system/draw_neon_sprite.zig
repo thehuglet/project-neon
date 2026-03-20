@@ -3,7 +3,7 @@ const rl = @import("raylib");
 const ECS = @import("ecs").ECS;
 const c = @import("component");
 const a = @import("asset");
-const math_helpers = @import("math_helpers");
+const math = @import("math");
 
 pub fn drawNeonSprite(ecs: *ECS, shader: *const a.NeonSpriteShader) void {
     // Drawing is done in two passes due to raylib lacking z-indexing:
@@ -11,52 +11,53 @@ pub fn drawNeonSprite(ecs: *ECS, shader: *const a.NeonSpriteShader) void {
     // - Second pass: All normal sprites are drawn
     //
     // This makes the entities render much nicer when overlapping each other.
+    {
+        var blur_pass_query = ecs.query(.{
+            c.Transform,
+            c.NeonSprite,
+        });
+        while (blur_pass_query.next()) |item| {
+            const transform: *c.Transform = item.get(c.Transform).?;
+            const neon_sprite: *c.NeonSprite = item.get(c.NeonSprite).?;
 
-    var blur_pass_query = ecs.query(.{
-        c.Transform,
-        c.NeonSprite,
-    });
-    while (blur_pass_query.next()) |item| {
-        const transform: *c.Transform = item.get(c.Transform).?;
-        const neon_sprite: *c.NeonSprite = item.get(c.NeonSprite).?;
+            {
+                const color_vec4: [4]f32 = a.colorToF32Array(neon_sprite.color);
+                const drawParams = computeDrawParams(transform, neon_sprite);
 
-        rl.beginShaderMode(shader.shader);
-        {
-            const color_vec4: [4]f32 = a.colorToF32Array(neon_sprite.color);
-            rl.setShaderValue(shader.shader, shader.u_color, &color_vec4, .vec4);
+                rl.beginShaderMode(shader.shader);
+                rl.setShaderValue(shader.shader, shader.u_color, &color_vec4, .vec4);
+                rl.drawTexturePro(
+                    neon_sprite.atlas.texture,
+                    neon_sprite.blur_texture_src,
+                    drawParams.dest,
+                    drawParams.origin,
+                    drawParams.final_rotation_deg,
+                    rl.Color.white,
+                );
+                rl.endShaderMode();
+            }
+        }
+    }
+    {
+        var base_pass_query = ecs.query(.{
+            c.Transform,
+            c.NeonSprite,
+        });
+        while (base_pass_query.next()) |item| {
+            const transform: *c.Transform = item.get(c.Transform).?;
+            const neon_sprite: *c.NeonSprite = item.get(c.NeonSprite).?;
 
             const drawParams = computeDrawParams(transform, neon_sprite);
 
             rl.drawTexturePro(
                 neon_sprite.atlas.texture,
-                neon_sprite.blur_texture_src,
+                neon_sprite.base_texture_src,
                 drawParams.dest,
                 drawParams.origin,
                 drawParams.final_rotation_deg,
                 rl.Color.white,
             );
         }
-        rl.endShaderMode();
-    }
-
-    var base_pass_query = ecs.query(.{
-        c.Transform,
-        c.NeonSprite,
-    });
-    while (base_pass_query.next()) |item| {
-        const transform: *c.Transform = item.get(c.Transform).?;
-        const neon_sprite: *c.NeonSprite = item.get(c.NeonSprite).?;
-
-        const drawParams = computeDrawParams(transform, neon_sprite);
-
-        rl.drawTexturePro(
-            neon_sprite.atlas.texture,
-            neon_sprite.base_texture_src,
-            drawParams.dest,
-            drawParams.origin,
-            drawParams.final_rotation_deg,
-            rl.Color.white,
-        );
     }
 }
 
@@ -74,6 +75,10 @@ fn computeDrawParams(transform: *const c.Transform, sprite: *const c.NeonSprite)
         .width = dest_width,
         .height = dest_height,
     };
-    const final_rotation_deg = (transform.rotation_rad + sprite.options.rotation_rad) * math_helpers.RAD_TO_DEG;
-    return .{ .dest = dest, .origin = origin, .final_rotation_deg = final_rotation_deg };
+    const final_rotation_deg = (transform.rotation_rad + sprite.options.rotation_rad) * math.RAD_TO_DEG;
+    return .{
+        .dest = dest,
+        .origin = origin,
+        .final_rotation_deg = final_rotation_deg,
+    };
 }

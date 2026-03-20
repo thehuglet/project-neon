@@ -7,8 +7,11 @@ const component = @import("component");
 const system = @import("system");
 const asset = @import("asset");
 
+const WINDOW_WIDTH = 1600;
+const WINDOW_HEIGHT = 900;
+
 const NATIVE_WIDTH = 1920;
-const NATIVE_HEIGHT = 1080;
+const NATIVE_HEIGHT = 1090;
 const NATIVE_WIDTH_F32: f32 = @floatFromInt(NATIVE_WIDTH);
 const NATIVE_HEIGHT_F32: f32 = @floatFromInt(NATIVE_HEIGHT);
 
@@ -20,7 +23,7 @@ pub fn main() !void {
         .window_resizable = true,
         .msaa_4x_hint = true,
     });
-    rl.initWindow(NATIVE_WIDTH, NATIVE_HEIGHT, "Project Neon");
+    rl.initWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Project Neon");
     rl.setTargetFPS(200);
     defer rl.closeWindow();
 
@@ -49,20 +52,47 @@ pub fn main() !void {
     defer assets.neon_sprite_shader.deinit();
 
     // ------ Temp ------
-    entity.player.spawn(&ecs, &assets, .init(400, 400));
-    entity.rotoglow.spawn(&ecs, &assets, .init(700, 400));
+    const player = entity.player.spawn(&ecs, &assets, .init(400, 400));
+    const roto_glow = entity.roto_glow.spawn(&ecs, &assets, .init(700, 400));
+    const roto_charger = entity.roto_charger.spawn(&ecs, &assets, .init(1000, 600));
+
+    ecs.addComponent(
+        roto_glow,
+        component.ChaseEntity{
+            .entity_id = player,
+            .turn_speed = 10.0,
+        },
+    );
+    ecs.addComponent(
+        roto_charger,
+        component.ChaseEntity{
+            .entity_id = player,
+            .turn_speed = 10.0,
+        },
+    );
 
     // ------ Canvas init ------
-    const canvas: rl.RenderTexture2D = try rl.loadRenderTexture(1920, 1080);
+    const canvas: rl.RenderTexture2D = try rl.loadRenderTexture(NATIVE_WIDTH, NATIVE_HEIGHT);
     rl.setTextureFilter(canvas.texture, rl.TextureFilter.bilinear);
 
     while (!rl.windowShouldClose()) {
+        const screen_scale_x = @as(f32, @floatFromInt(rl.getScreenWidth())) / NATIVE_WIDTH_F32;
+        const screen_scale_y = @as(f32, @floatFromInt(rl.getScreenHeight())) / NATIVE_HEIGHT_F32;
+
+        const screen_mouse_pos = rl.getMousePosition();
+        const mouse_pos = rl.Vector2{
+            .x = screen_mouse_pos.x / screen_scale_x,
+            .y = screen_mouse_pos.y / screen_scale_y,
+        };
+
         // ------ Game logic ------
         ecs.beginQuery();
         defer ecs.endQuery();
 
+        system.chaseEntity(&ecs);
         system.playerMovement(&ecs);
-        system.playerRotateFacingMouseCosmetic(&ecs);
+
+        system.playerRotateFacingMouseCosmetic(&ecs, mouse_pos);
         system.spinCosmetic(&ecs);
 
         // ------ Drawing to canvas ------
@@ -79,9 +109,6 @@ pub fn main() !void {
         {
             rl.beginDrawing();
             defer rl.endDrawing();
-
-            const screen_scale_x = @as(f32, @floatFromInt(rl.getScreenWidth())) / NATIVE_WIDTH_F32;
-            const screen_scale_y = @as(f32, @floatFromInt(rl.getScreenHeight())) / NATIVE_HEIGHT_F32;
 
             rl.drawTexturePro(
                 canvas.texture,

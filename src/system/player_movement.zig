@@ -2,7 +2,6 @@ const rl = @import("raylib");
 
 const ECS = @import("ecs").ECS;
 const c = @import("component");
-const a = @import("asset");
 
 pub fn playerMovement(ecs: *ECS) void {
     const input_direction: rl.Vector2 = inputDirection();
@@ -11,12 +10,14 @@ pub fn playerMovement(ecs: *ECS) void {
     var query = ecs.query(.{
         c.Player,
         c.Transform,
+        c.MovementSpeed,
     });
     while (query.next()) |item| {
         const transform: *c.Transform = item.get(c.Transform).?;
+        const movement_speed: *c.MovementSpeed = item.get(c.MovementSpeed).?;
 
         transform.pos = transform.pos.add(
-            input_direction.scale(600.0 * delta_time),
+            input_direction.scale(movement_speed.base * delta_time),
         );
     }
 }

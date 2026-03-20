@@ -3,10 +3,9 @@ const rl = @import("raylib");
 const ECS = @import("ecs").ECS;
 const c = @import("component");
 const a = @import("asset");
-const math_helpers = @import("math_helpers");
+const math = @import("math");
 
-pub fn playerRotateFacingMouseCosmetic(ecs: *ECS) void {
-    const mouse_pos: rl.Vector2 = rl.getMousePosition();
+pub fn playerRotateFacingMouseCosmetic(ecs: *ECS, mouse_pos: rl.Vector2) void {
     const delta_time: f32 = rl.getFrameTime();
 
     var query = ecs.query(.{
@@ -18,13 +17,13 @@ pub fn playerRotateFacingMouseCosmetic(ecs: *ECS) void {
         const transform: *c.Transform = item.get(c.Transform).?;
         const neon_sprite: *c.NeonSprite = item.get(c.NeonSprite).?;
 
-        const dir_to_mouse = math_helpers.direction(
+        const dir_to_mouse = math.direction(
             transform.pos,
             mouse_pos,
         );
 
-        const target_angle_rad: f32 = math_helpers.vec2ToAngle(dir_to_mouse);
-        neon_sprite.options.rotation_rad = math_helpers.lerpAngle(
+        const target_angle_rad: f32 = math.vec2ToAngle(dir_to_mouse);
+        neon_sprite.options.rotation_rad = math.lerpAngle(
             neon_sprite.options.rotation_rad,
             target_angle_rad,
             delta_time * 10.0,

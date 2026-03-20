@@ -2,9 +2,15 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) void {
     const allocator = std.heap.page_allocator;
-
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+
+    // ------ Options ------
+    const skip_atlas_gen = b.option(
+        bool,
+        "skip-atlas-gen",
+        "Skip texture atlas generation",
+    ) orelse false;
 
     // ------ Atlas generation ------
     const run_atlas_gen_cmd = b.addSystemCommand(&.{
@@ -40,7 +46,7 @@ pub fn build(b: *std.Build) void {
         .{ .name = "system", .path = "src/system/mod.zig" },
         .{ .name = "ecs", .path = "src/ecs/mod.zig" },
         .{ .name = "asset", .path = "src/asset.zig" },
-        .{ .name = "math_helpers", .path = "src/math_helpers.zig" },
+        .{ .name = "math", .path = "src/math.zig" },
     };
 
     for (included_modules) |info| {
@@ -72,7 +78,9 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    exe.step.dependOn(&run_atlas_gen_cmd.step);
+    if (!skip_atlas_gen) {
+        exe.step.dependOn(&run_atlas_gen_cmd.step);
+    }
     exe.linkLibrary(raylib_artifact);
 
     for (modules.items) |item| {
