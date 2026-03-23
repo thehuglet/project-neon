@@ -41,12 +41,13 @@ pub fn build(b: *std.Build) void {
         name: []const u8,
         path: []const u8,
     }{
+        .{ .name = "math", .path = "src/math.zig" },
+        .{ .name = "helpers", .path = "src/helpers.zig" },
+        .{ .name = "asset", .path = "src/asset.zig" },
         .{ .name = "entity", .path = "src/entity/mod.zig" },
         .{ .name = "component", .path = "src/component/mod.zig" },
         .{ .name = "system", .path = "src/system/mod.zig" },
         .{ .name = "ecs", .path = "src/ecs/mod.zig" },
-        .{ .name = "asset", .path = "src/asset.zig" },
-        .{ .name = "math", .path = "src/math.zig" },
     };
 
     for (included_modules) |info| {

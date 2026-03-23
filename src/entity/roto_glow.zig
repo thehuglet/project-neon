@@ -1,35 +1,49 @@
+const std = @import("std");
+
 const rl = @import("raylib");
 
 const ECS = @import("ecs").ECS;
 const c = @import("component");
 const a = @import("asset");
 
-pub fn spawn(ecs: *ECS, assets: *const a.Assets, pos: rl.Vector2) usize {
+const helpers = @import("helpers");
+
+pub fn spawn(ecs: *ECS, rng: std.Random, assets: *const a.Assets, pos: rl.Vector2) usize {
     const entity_id = ecs.assignEntityId();
 
+    ecs.addComponent(entity_id, c.TargetsPlayer{});
+    ecs.addComponent(entity_id, c.Motion{
+        .mass = 1.0,
+        .friction = 0.0,
+    });
+    ecs.addComponent(entity_id, c.Movement{
+        .max_speed = helpers.randomFloatRange(rng, 300.0, 400.0),
+        .accel_time = helpers.randomFloatRange(rng, 0.4, 0.6),
+    });
     ecs.addComponent(entity_id, c.Transform{
         .pos = pos,
         .rotation_rad = 0.0,
         .scale = 1.0,
     });
-    ecs.addComponent(entity_id, c.NeonSprite.init(
-        assets.roto_atlas,
-        0,
-        rl.Color.red,
-        c.NeonSprite.Options{},
-    ));
+    ecs.addComponent(entity_id, c.NeonSprite{
+        .atlas = assets.roto_atlas,
+        .sprite_index = 0,
+        .color = rl.Color.init(255, 0, 60, 255),
+    });
     ecs.addComponent(entity_id, c.SpinCosmetic{
-        .speed = 30.0,
+        .speed = 40.0,
     });
-    ecs.addComponent(entity_id, c.MovementSpeed{
-        .base = 400.0,
+    ecs.addComponent(entity_id, c.ChaseEntity{
+        .turn_rate = helpers.randomFloatRange(rng, 10.0, 14.0),
+        .accel_impact_on_turn_rate = 0.5,
     });
-    ecs.addComponent(entity_id, c.DynamicMovementSpeed{
-        .current_speed_scale = 0.3,
-        .min_speed_scale = 0.1,
-        .max_speed_scale = 1.0,
-        .acceleration_rate = 1.0,
-        .deceleration_rate = 1.0,
+    ecs.addComponent(entity_id, c.Hurtbox{
+        .radius = 38.0,
+        .layer = c.CollisionLayer.ENEMY,
+    });
+    ecs.addComponent(entity_id, c.Hitbox{
+        .radius = 25.0,
+        .mask = c.CollisionLayer.player,
     });
 
     return entity_id;

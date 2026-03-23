@@ -11,17 +11,21 @@ pub const EntityIdPool = struct {
         };
     }
 
-    pub fn assignEntityId(pool: *EntityIdPool) usize {
-        if (pool.recycled.pop()) |id| {
+    pub fn deinit(self: *EntityIdPool, allocator: std.mem.Allocator) void {
+        self.recycled.deinit(allocator);
+    }
+
+    pub fn assignEntityId(self: *EntityIdPool) usize {
+        if (self.recycled.pop()) |id| {
             return id;
         }
 
-        const id = pool.next_id;
-        pool.next_id += 1;
+        const id = self.next_id;
+        self.next_id += 1;
         return id;
     }
 
-    pub fn freeEntityId(pool: *EntityIdPool, entity_id: usize) void {
-        _ = pool.recycled.append(entity_id);
+    pub fn freeEntityId(self: *EntityIdPool, allocator: std.mem.Allocator, entity_id: usize) void {
+        self.recycled.append(allocator, entity_id) catch @panic("OOM");
     }
 };

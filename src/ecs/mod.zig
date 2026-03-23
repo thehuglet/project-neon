@@ -68,8 +68,9 @@ pub const ECS = struct {
     };
 
     const Operation = union(enum) {
-        add: struct { entity_id: usize, comp: ComponentUnion },
-        remove: struct { entity_id: usize, tag: ComponentTag },
+        add_component: struct { entity_id: usize, comp: ComponentUnion },
+        remove_component: struct { entity_id: usize, tag: ComponentTag },
+        delete_entity: struct { entity_id: usize },
     };
 
     pub fn Query(comptime ComponentTypes: anytype) type {
@@ -143,17 +144,18 @@ pub const ECS = struct {
         return ecs;
     }
 
-    pub fn deinit(ecs: *ECS) void {
-        ecs.operation_queue.deinit(ecs.allocator);
+    pub fn deinit(self: *ECS) void {
+        self.operation_queue.deinit(self.allocator);
         inline for (ComponentRegistry) |C| {
-            @field(&ecs.components, C.field_name).deinit();
+            @field(&self.components, C.field_name).deinit();
         }
+        self.entity_id_pool.deinit(self.allocator);
     }
 
-    pub fn addComponent(ecs: *ECS, entity_id: usize, value: anytype) void {
+    pub fn addComponent(self: *ECS, entity_id: usize, value: anytype) void {
         const T = @TypeOf(value);
 
-        if (ecs.query_active) {
+        if (self.query_active) {
             const comp = blk: {
                 inline for (ComponentRegistry) |entry| {
                     if (T == entry.T) {
@@ -163,13 +165,17 @@ pub const ECS = struct {
                 // T is guaranteed to be in the registry
                 unreachable;
             };
-            ecs.operation_queue.append(ecs.allocator, .{ .add = .{ .entity_id = entity_id, .comp = comp } }) catch @panic("Out of memory");
+            self.operation_queue.append(self.allocator, .{ .add_component = .{ .entity_id = entity_id, .comp = comp } }) catch @panic("Out of memory");
         } else {
-            getSparseSetPtr(&ecs.components, T).addComponent(entity_id, value);
+            const set = getSparseSetPtr(&self.components, T);
+            if (set.hasComponent(entity_id)) {
+                std.debug.panic("Attempted adding of duplicate component {s}.", .{@typeName(T)});
+            }
+            set.addComponent(entity_id, value);
         }
     }
 
-    pub fn removeComponent(ecs: *ECS, entity_id: usize, comptime T: type) void {
+    pub fn removeComponent(self: *ECS, entity_id: usize, comptime T: type) void {
         comptime var tag: ?ComponentTag = null;
         inline for (ComponentRegistry, 0..) |entry, i| {
             if (T == entry.T) {
@@ -179,19 +185,85 @@ pub const ECS = struct {
         }
         const tag_value = tag orelse @compileError("Unsupported component type");
 
-        if (ecs.query_active) {
-            ecs.operation_queue.append(ecs.allocator, .{ .remove = .{ .entity_id = entity_id, .tag = tag_value } }) catch @panic("Out of memory");
+        if (self.query_active) {
+            self.operation_queue.append(self.allocator, .{ .remove_component = .{ .entity_id = entity_id, .tag = tag_value } }) catch @panic("Out of memory");
         } else {
-            getSparseSetPtr(&ecs.components, T).removeComponent(entity_id);
+            getSparseSetPtr(&self.components, T).removeComponent(entity_id);
         }
     }
 
-    pub fn hasComponent(ecs: *ECS, entity_id: usize, comptime T: type) bool {
-        return getSparseSetPtr(&ecs.components, T).hasComponent(entity_id);
+    pub fn hasComponent(self: *ECS, entity_id: usize, comptime T: type) bool {
+        return getSparseSetPtr(&self.components, T).hasComponent(entity_id);
     }
 
-    pub fn getComponent(ecs: *ECS, entity_id: usize, comptime T: type) ?*T {
-        return getSparseSetPtr(&ecs.components, T).getComponent(entity_id);
+    pub fn getComponent(self: *ECS, entity_id: usize, comptime T: type) ?*T {
+        return getSparseSetPtr(&self.components, T).getComponent(entity_id);
+    }
+
+    pub fn assignEntityId(self: *ECS) usize {
+        return self.entity_id_pool.assignEntityId();
+    }
+
+    pub fn deleteEntity(self: *ECS, entity_id: usize) void {
+        if (self.query_active) {
+            self.operation_queue.append(self.allocator, .{ .delete_entity = .{ .entity_id = entity_id } }) catch @panic("OOM");
+        } else {
+            inline for (ComponentRegistry) |entry| {
+                if (self.hasComponent(entity_id, entry.T)) {
+                    getSparseSetPtr(&self.components, entry.T).removeComponent(entity_id);
+                }
+            }
+            _ = self.entity_id_pool.freeEntityId(self.allocator, entity_id);
+        }
+    }
+
+    pub fn flush(self: *ECS) void {
+        for (self.operation_queue.items) |op| {
+            switch (op) {
+                .add_component => |a| {
+                    switch (a.comp) {
+                        inline else => |value| {
+                            const T = @TypeOf(value);
+                            const set = getSparseSetPtr(&self.components, T);
+                            if (set.getComponent(a.entity_id) != null) {
+                                std.debug.panic("Attempted adding of duplicate component {s}.", .{@typeName(T)});
+                            }
+                            set.addComponent(a.entity_id, value);
+                        },
+                    }
+                },
+                .remove_component => |r| {
+                    inline for (ComponentRegistry, 0..) |entry, i| {
+                        if (@intFromEnum(r.tag) == i) {
+                            getSparseSetPtr(&self.components, entry.T).removeComponent(r.entity_id);
+                            break;
+                        }
+                    }
+                },
+                .delete_entity => |d| {
+                    inline for (ComponentRegistry) |entry| {
+                        if (self.hasComponent(d.entity_id, entry.T)) {
+                            getSparseSetPtr(&self.components, entry.T).removeComponent(d.entity_id);
+                        }
+                    }
+                    self.entity_id_pool.freeEntityId(self.allocator, d.entity_id);
+                },
+            }
+        }
+        self.operation_queue.clearRetainingCapacity();
+    }
+
+    pub fn query(self: *ECS, comptime queried_components: anytype) Query(queried_components) {
+        return Query(queried_components).init(self);
+    }
+
+    pub fn beginQuery(self: *ECS) void {
+        self.query_active = true;
+    }
+
+    pub fn endQuery(self: *ECS) void {
+        self.query_active = false;
+        self.flush();
     }
 
     fn getSparseSetPtr(comps: *ComponentState, comptime T: type) *SparseComponentSet(T) {
@@ -200,51 +272,6 @@ pub const ECS = struct {
                 return &@field(comps, entry.field_name);
             }
         }
-        @compileError("No component of type " ++ @typeName(T) ++ " registered");
-    }
-
-    pub fn assignEntityId(ecs: *ECS) usize {
-        return ecs.entity_id_pool.assignEntityId();
-    }
-
-    pub fn freeEntityId(ecs: *ECS, entity_id: usize) usize {
-        return ecs.entity_id_pool.freeEntityId(entity_id);
-    }
-
-    pub fn flush(ecs: *ECS) void {
-        for (ecs.operation_queue.items) |op| {
-            switch (op) {
-                .add => |a| {
-                    switch (a.comp) {
-                        inline else => |value| {
-                            const T = @TypeOf(value);
-                            getSparseSetPtr(&ecs.components, T).addComponent(a.entity_id, value);
-                        },
-                    }
-                },
-                .remove => |r| {
-                    inline for (ComponentRegistry, 0..) |entry, i| {
-                        if (@intFromEnum(r.tag) == i) {
-                            getSparseSetPtr(&ecs.components, entry.T).removeComponent(r.entity_id);
-                            break;
-                        }
-                    }
-                },
-            }
-        }
-        ecs.operation_queue.clearRetainingCapacity();
-    }
-
-    pub fn query(ecs: *ECS, comptime queried_components: anytype) Query(queried_components) {
-        return Query(queried_components).init(ecs);
-    }
-
-    pub fn beginQuery(ecs: *ECS) void {
-        ecs.query_active = true;
-    }
-
-    pub fn endQuery(ecs: *ECS) void {
-        ecs.query_active = false;
-        ecs.flush();
+        @compileError("No component of type " ++ @typeName(T) ++ " registered in ECS");
     }
 };

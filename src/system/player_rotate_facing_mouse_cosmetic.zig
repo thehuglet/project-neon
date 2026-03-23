@@ -2,7 +2,6 @@ const rl = @import("raylib");
 
 const ECS = @import("ecs").ECS;
 const c = @import("component");
-const a = @import("asset");
 const math = @import("math");
 
 pub fn playerRotateFacingMouseCosmetic(ecs: *ECS, mouse_pos: rl.Vector2) void {
@@ -23,8 +22,8 @@ pub fn playerRotateFacingMouseCosmetic(ecs: *ECS, mouse_pos: rl.Vector2) void {
         );
 
         const target_angle_rad: f32 = math.vec2ToAngle(dir_to_mouse);
-        neon_sprite.options.rotation_rad = math.lerpAngle(
-            neon_sprite.options.rotation_rad,
+        neon_sprite.rotation_rad = math.lerpAngle(
+            neon_sprite.rotation_rad,
             target_angle_rad,
             delta_time * 10.0,
         );
