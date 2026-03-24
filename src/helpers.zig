@@ -50,3 +50,22 @@ pub fn brake(motion: *c.Motion, movement: *const c.Movement, delta_time: f32) vo
 pub fn randomFloatRange(random: std.Random, min: f32, max: f32) f32 {
     return min + random.float(f32) * (max - min);
 }
+
+/// Retrieves the shader uniform location.
+///
+/// # PANIC
+///
+/// Will panic if the uniform location doesn't exist.
+pub fn getShaderUniformChecked(shader: rl.Shader, uniform_name: [:0]const u8) i32 {
+    return rl.getShaderLocation(shader, uniform_name);
+}
+
+/// Returns the X scale of the window in relation to the native size.
+pub fn screenScaleX(native_width: f32) f32 {
+    return @as(f32, @floatFromInt(rl.getScreenWidth())) / native_width;
+}
+
+/// Returns the Y scale of the window in relation to the native size.
+pub fn screenScaleY(native_height: f32) f32 {
+    return @as(f32, @floatFromInt(rl.getScreenHeight())) / native_height;
+}

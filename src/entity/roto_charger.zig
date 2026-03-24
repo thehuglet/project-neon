@@ -8,7 +8,7 @@ const a = @import("asset");
 
 const helpers = @import("helpers");
 
-pub fn spawn(ecs: *ECS, rng: std.Random, assets: *const a.Assets, pos: rl.Vector2) usize {
+pub fn spawn(ecs: *ECS, rng: std.Random, atlas: a.TextureAtlas, pos: rl.Vector2) usize {
     const entity_id = ecs.assignEntityId();
 
     ecs.addComponent(entity_id, c.TargetsPlayer{});
@@ -27,7 +27,7 @@ pub fn spawn(ecs: *ECS, rng: std.Random, assets: *const a.Assets, pos: rl.Vector
         .scale = 1.0,
     });
     ecs.addComponent(entity_id, c.NeonSprite{
-        .atlas = assets.roto_atlas,
+        .atlas = atlas,
         .sprite_index = 1,
         .color = rl.Color.init(255, 0, 128, 255),
     });

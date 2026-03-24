@@ -168,9 +168,6 @@ pub const ECS = struct {
             self.operation_queue.append(self.allocator, .{ .add_component = .{ .entity_id = entity_id, .comp = comp } }) catch @panic("Out of memory");
         } else {
             const set = getSparseSetPtr(&self.components, T);
-            if (set.hasComponent(entity_id)) {
-                std.debug.panic("Attempted adding of duplicate component {s}.", .{@typeName(T)});
-            }
             set.addComponent(entity_id, value);
         }
     }
@@ -225,9 +222,6 @@ pub const ECS = struct {
                         inline else => |value| {
                             const T = @TypeOf(value);
                             const set = getSparseSetPtr(&self.components, T);
-                            if (set.getComponent(a.entity_id) != null) {
-                                std.debug.panic("Attempted adding of duplicate component {s}.", .{@typeName(T)});
-                            }
                             set.addComponent(a.entity_id, value);
                         },
                     }

@@ -27,6 +27,10 @@ pub fn SparseComponentSet(comptime T: type) type {
         }
 
         pub fn addComponent(sparse_set: *Self, entity_id: usize, component: T) void {
+            if (sparse_set.hasComponent(entity_id)) {
+                return;
+            }
+
             const component_index: usize = sparse_set.data.items.len;
 
             sparse_set.data.append(sparse_set.allocator, component) catch @panic("Out of memory adding component");
@@ -40,7 +44,9 @@ pub fn SparseComponentSet(comptime T: type) type {
 
         pub fn hasComponent(sparse_set: *Self, entity_id: usize) bool {
             const entity_id_in_bounds: bool = entity_id < sparse_set.component_indices.items.len;
-            if (!entity_id_in_bounds) return false;
+            if (!entity_id_in_bounds) {
+                return false;
+            }
 
             const dense_index = sparse_set.component_indices.items[entity_id];
 

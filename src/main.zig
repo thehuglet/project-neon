@@ -6,6 +6,9 @@ const entity = @import("entity");
 const component = @import("component");
 const system = @import("system");
 const asset = @import("asset");
+const helpers = @import("helpers");
+
+const debug = @import("debug.zig");
 
 const WINDOW_WIDTH = 1600;
 const WINDOW_HEIGHT = 900;
@@ -43,8 +46,10 @@ pub fn main() !void {
     }
 
     // ------ Debug options ------
-    var debug_hurtboxes = false;
-    var debug_hitboxes = false;
+    var debug_settings = debug.DebugSettings{
+        .show_hurtboxes = false,
+        .show_hitboxes = false,
+    };
 
     // ------ Raylib init ------
     rl.setConfigFlags(rl.ConfigFlags{
@@ -55,133 +60,131 @@ pub fn main() !void {
     rl.setTargetFPS(0);
     defer rl.closeWindow();
 
-    // ------ ECS init ------
+    // ------ ECS ------
     var ecs = ECS.init(allocator);
     defer ecs.deinit();
 
     // ------ Assets init ------
-    const assets = asset.Assets{
-        .cube_atlas = asset.TextureAtlas.init(
-            "assets/gen_textures/atlases/cube_atlas.png",
-            96,
-            96,
-        ),
-        .roto_atlas = asset.TextureAtlas.init(
-            "assets/gen_textures/atlases/roto_atlas.png",
-            96,
-            96,
-        ),
-        .neon_sprite_shader = asset.NeonSpriteShader.init(
-            "assets/shaders/neon_sprite.fs",
-        ),
-        .bloom_shader = asset.BloomShader.init(
-            "assets/shaders/bloom.fs",
-        ),
-        .background_shader = asset.BackgroundShader.init(
-            "assets/shaders/background.fs",
-        ),
-    };
+    // Texture atlases
+    const asset_atlas_cube: asset.TextureAtlas = .init(
+        "assets/gen_textures/atlases/cube_atlas.png",
+        96,
+        96,
+    );
+    const asset_atlas_roto: asset.TextureAtlas = .init(
+        "assets/gen_textures/atlases/roto_atlas.png",
+        96,
+        96,
+    );
+    // Shaders
+    const asset_shader_neon_sprite: rl.Shader = try rl.loadShader(
+        "assets/shaders/neon_sprite.vs",
+        "assets/shaders/neon_sprite.fs",
+    );
+    const asset_shader_bg_starfield: rl.Shader = try rl.loadShader(
+        null,
+        "assets/shaders/bg_starfield.fs",
+    );
+    const asset_shader_bloom: rl.Shader = try rl.loadShader(
+        null,
+        "assets/shaders/bloom.fs",
+    );
 
-    {
-        const resolution = [2]f32{ NATIVE_WIDTH_F32, NATIVE_HEIGHT_F32 };
-        rl.setShaderValue(
-            assets.background_shader.shader,
-            assets.background_shader.u_resolution,
-            &resolution,
-            .vec2,
-        );
+    defer {
+        // Texture atlases
+        asset.deinitAtlas(asset_atlas_cube);
+        asset.deinitAtlas(asset_atlas_roto);
+        // Shaders
+        rl.unloadShader(asset_shader_neon_sprite);
+        rl.unloadShader(asset_shader_bg_starfield);
+        rl.unloadShader(asset_shader_bloom);
     }
-
-    defer assets.cube_atlas.deinit();
-    defer assets.neon_sprite_shader.deinit();
-
-    // ------ Temp ------
-    _ = entity.player.spawn(&ecs, &assets, .init(400, 400));
 
     // ------ Canvas init ------
     const canvas: rl.RenderTexture2D = try rl.loadRenderTexture(NATIVE_WIDTH, NATIVE_HEIGHT);
     rl.setTextureWrap(canvas.texture, rl.TextureWrap.clamp);
     rl.setTextureFilter(canvas.texture, rl.TextureFilter.bilinear);
 
-    while (!rl.windowShouldClose()) {
-        temp.clear();
-
-        const current_time: f32 = @floatCast(rl.getTime());
+    // ------ Bg starfield shader uniform resolution setting ------
+    {
+        const resolution = [2]f32{ NATIVE_WIDTH_F32, NATIVE_HEIGHT_F32 };
         rl.setShaderValue(
-            assets.background_shader.shader,
-            assets.background_shader.u_time,
-            &current_time,
-            .float,
+            asset_shader_bg_starfield,
+            helpers.getShaderUniformChecked(
+                asset_shader_bg_starfield,
+                "u_resolution",
+            ),
+            &resolution,
+            .vec2,
         );
+    }
 
-        // ------ Debug toggles ------
-        if (rl.isKeyPressed(rl.KeyboardKey.b)) {
-            debug_hurtboxes = !debug_hurtboxes;
-        }
-        if (rl.isKeyPressed(rl.KeyboardKey.n)) {
-            debug_hitboxes = !debug_hitboxes;
-        }
+    // ------ Temp ------
+    _ = entity.player.spawn(&ecs, asset_atlas_cube, .init(400, 400));
 
-        const screen_scale_x = @as(f32, @floatFromInt(rl.getScreenWidth())) / NATIVE_WIDTH_F32;
-        const screen_scale_y = @as(f32, @floatFromInt(rl.getScreenHeight())) / NATIVE_HEIGHT_F32;
+    _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(1000, 600));
+    _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(400, 200));
+    _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(1300, 1000));
+    _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(300, 1000));
+    _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(500, 600));
 
+    while (!rl.windowShouldClose()) {
+        const game_time: f32 = @floatCast(rl.getTime());
         const screen_mouse_pos = rl.getMousePosition();
-        const mouse_pos = rl.Vector2{
-            .x = screen_mouse_pos.x / screen_scale_x,
-            .y = screen_mouse_pos.y / screen_scale_y,
+        const canvas_mouse_pos = rl.Vector2{
+            .x = screen_mouse_pos.x / helpers.screenScaleX(NATIVE_WIDTH_F32),
+            .y = screen_mouse_pos.y / helpers.screenScaleY(NATIVE_HEIGHT_F32),
         };
 
-        // ------ Game logic ------
+        temp.clear();
+
         ecs.beginQuery();
         defer ecs.endQuery();
 
-        // var hurtbox_count: usize = 0;
-        // var hitbox_count: usize = 0;
-        // var player_count: usize = 0;
-        var e_count: i32 = 0;
-
-        var q1 = ecs.query(.{component.NeonSprite});
-        while (q1.next()) |_| e_count += 1;
-
-        if (e_count == 1) {
-            for (0..300) |_| {
-                _ = entity.roto_charger.spawn(&ecs, rng, &assets, .init(1000, 600));
-                _ = entity.roto_charger.spawn(&ecs, rng, &assets, .init(400, 200));
-                _ = entity.roto_charger.spawn(&ecs, rng, &assets, .init(1300, 1000));
-                _ = entity.roto_charger.spawn(&ecs, rng, &assets, .init(300, 1000));
-                _ = entity.roto_charger.spawn(&ecs, rng, &assets, .init(500, 600));
-            }
+        // ------ Bg starfield shader uniform time setting ------
+        {
+            rl.setShaderValue(
+                asset_shader_bg_starfield,
+                helpers.getShaderUniformChecked(
+                    asset_shader_bg_starfield,
+                    "u_time",
+                ),
+                &game_time,
+                .float,
+            );
         }
 
-        system.switchSprites(&ecs);
-        system.setTargetToPlayer(&ecs);
+        // ------ Debug toggles ------
+        debug.handleDebugHotkeys(&debug_settings);
 
-        system.chaseEntity(&ecs);
-        system.playerMovement(&ecs);
+        // ------ Game logic ------
+        {
+            system.switchSprites(&ecs);
+            system.setTargetToPlayer(&ecs);
+            system.chaseEntity(&ecs);
+            system.playerMovement(&ecs);
+            system.spinCosmetic(&ecs);
+            system.playerRotateFacingMouseCosmetic(&ecs, canvas_mouse_pos);
+            system.handleCollisions(
+                &ecs,
+                allocator,
+                &temp.hurt_ids,
+                &temp.hurt_positions,
+                &temp.hurt_radii,
+                &temp.hurt_layers,
+            );
 
-        // Cosmetic changes
-        system.spinCosmetic(&ecs);
-        system.playerRotateFacingMouseCosmetic(&ecs, mouse_pos);
-
-        system.handleCollisions(
-            &ecs,
-            allocator,
-            &temp.hurt_ids,
-            &temp.hurt_positions,
-            &temp.hurt_radii,
-            &temp.hurt_layers,
-        );
-
-        // Physics end frame calculations
-        system.applyMotionToTransform(&ecs);
-        system.motionApplyDragFriction(&ecs);
+            // Physics end frame calculations
+            system.applyMotionToTransform(&ecs);
+            system.motionApplyDragFriction(&ecs);
+        }
 
         // ------ Drawing to canvas ------
         {
             rl.beginTextureMode(canvas);
             defer rl.endTextureMode();
 
-            rl.beginShaderMode(assets.background_shader.shader);
+            rl.beginShaderMode(asset_shader_bg_starfield);
             rl.drawRectangle(
                 0,
                 0,
@@ -191,12 +194,13 @@ pub fn main() !void {
             );
             rl.endShaderMode();
 
-            system.drawNeonSprite(&ecs, &assets.neon_sprite_shader);
+            system.drawNeonSprites(&ecs, asset_shader_neon_sprite);
 
-            if (debug_hurtboxes) {
+            // Debug drawing
+            if (debug_settings.show_hurtboxes) {
                 system.drawDebugHurtboxes(&ecs);
             }
-            if (debug_hitboxes) {
+            if (debug_settings.show_hitboxes) {
                 system.drawDebugHitboxes(&ecs);
             }
         }
@@ -206,40 +210,32 @@ pub fn main() !void {
             rl.beginDrawing();
             defer rl.endDrawing();
 
-            {
-                rl.beginShaderMode(assets.bloom_shader.shader);
-                defer rl.endShaderMode();
+            rl.beginShaderMode(asset_shader_bloom);
+            defer rl.endShaderMode();
 
-                rl.drawTexturePro(
-                    canvas.texture,
-                    rl.Rectangle{
-                        .x = 0,
-                        .y = 0,
-                        .width = NATIVE_WIDTH_F32,
-                        .height = -NATIVE_HEIGHT_F32,
-                    },
-                    rl.Rectangle{
-                        .x = 0,
-                        .y = 0,
-                        .width = NATIVE_WIDTH_F32 * screen_scale_x,
-                        .height = NATIVE_HEIGHT_F32 * screen_scale_y,
-                    },
-                    rl.Vector2{
-                        .x = 0,
-                        .y = 0,
-                    },
-                    0,
-                    rl.Color.white,
-                );
-            }
+            const src = rl.Rectangle{
+                .x = 0,
+                .y = 0,
+                .width = NATIVE_WIDTH_F32,
+                .height = -NATIVE_HEIGHT_F32,
+            };
+            const dest = rl.Rectangle{
+                .x = 0,
+                .y = 0,
+                .width = NATIVE_WIDTH_F32 * helpers.screenScaleX(NATIVE_WIDTH_F32),
+                .height = NATIVE_HEIGHT_F32 * helpers.screenScaleY(NATIVE_HEIGHT_F32),
+            };
+
+            rl.drawTexturePro(
+                canvas.texture,
+                src,
+                dest,
+                rl.Vector2{ .x = 0, .y = 0 },
+                0,
+                rl.Color.white,
+            );
+
             rl.drawFPS(0, 0);
-            drawEntityCount(0, 20, e_count, 20, rl.Color.white);
         }
     }
-}
-
-fn drawEntityCount(x: i32, y: i32, count: i32, fontSize: i32, color: rl.Color) void {
-    var buf: [32]u8 = undefined; // enough for "999999 ENTITIES" + null
-    const text = std.fmt.bufPrintZ(&buf, "{} ENTITIES", .{count}) catch return;
-    rl.drawText(text, x, y, fontSize, color);
 }

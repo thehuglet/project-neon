@@ -1,9 +1,6 @@
-// Markers
 pub const Player = @import("player.zig").Player;
 pub const TargetsPlayer = @import("targets_player.zig").TargetsPlayer;
 pub const SpriteSwitcher = @import("sprite_switcher.zig").SpriteSwitcher;
-
-// Other
 pub const Motion = @import("motion.zig").Motion;
 pub const Hitbox = @import("hitbox.zig").Hitbox;
 pub const Hurtbox = @import("hurtbox.zig").Hurtbox;
@@ -23,8 +20,6 @@ pub const Registry = [_]struct {
     .{ .T = Player, .field_name = "player" },
     .{ .T = TargetsPlayer, .field_name = "targets_player" },
     .{ .T = SpriteSwitcher, .field_name = "sprite_switcher" },
-
-    // Other
     .{ .T = Motion, .field_name = "motion" },
     .{ .T = Hitbox, .field_name = "hitbox" },
     .{ .T = Hurtbox, .field_name = "hurtbox" },

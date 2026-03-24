@@ -16,10 +16,8 @@ pub fn setTargetToPlayer(ecs: *ECS) void {
     while (targetting_entity_query.next()) |item| {
         const targetting_entity_id: usize = item.entity_id;
 
-        if (!ecs.hasComponent(targetting_entity_id, c.TargetedEntity)) {
-            ecs.addComponent(targetting_entity_id, c.TargetedEntity{
-                .entity_id = player_entity_id,
-            });
-        }
+        ecs.addComponent(targetting_entity_id, c.TargetedEntity{
+            .entity_id = player_entity_id,
+        });
     }
 }
