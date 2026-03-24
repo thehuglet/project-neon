@@ -197,6 +197,8 @@ pub fn main() !void {
             system.drawNeonSprites(&ecs, asset_shader_neon_sprite);
 
             // Debug drawing
+            system.drawPlayerHealth(&ecs);
+
             if (debug_settings.show_hurtboxes) {
                 system.drawDebugHurtboxes(&ecs);
             }

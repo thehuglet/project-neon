@@ -10,3 +10,4 @@ pub const switchSprites = @import("switch_sprites.zig").switchSprites;
 pub const drawDebugHurtboxes = @import("draw_debug_hurtboxes.zig").drawDebugHurtboxes;
 pub const drawDebugHitboxes = @import("draw_debug_hitboxes.zig").drawDebugHitboxes;
 pub const handleCollisions = @import("handle_collisions.zig").handleCollisions;
+pub const drawPlayerHealth = @import("draw_player_health.zig").drawPlayerHealth;

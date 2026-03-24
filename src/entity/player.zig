@@ -31,6 +31,9 @@ pub fn spawn(ecs: *ECS, atlas: a.TextureAtlas, pos: rl.Vector2) usize {
         .radius = 30.0,
         .layer = c.CollisionLayer.player,
     });
+    ecs.addComponent(entity_id, c.HealthLives{
+        .lives = 3,
+    });
 
     return entity_id;
 }
