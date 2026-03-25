@@ -4,10 +4,20 @@ const ECS = @import("ecs").ECS;
 const c = @import("component");
 const a = @import("asset");
 
+const weapon = @import("weapon");
+
 pub fn spawn(ecs: *ECS, atlas: a.TextureAtlas, pos: rl.Vector2) usize {
     const entity_id = ecs.assignEntityId();
 
     ecs.addComponent(entity_id, c.Player{});
+    ecs.addComponent(entity_id, c.PlayerInput{});
+    ecs.addComponent(entity_id, c.WeaponUseIntent{});
+    ecs.addComponent(entity_id, c.WeaponSlots{
+        .slots = .{
+            weapon.createWeapon(.noob_gun),
+            null,
+        },
+    });
     ecs.addComponent(entity_id, c.Transform{
         .pos = pos,
         .rotation_rad = 0.0,
@@ -32,6 +42,7 @@ pub fn spawn(ecs: *ECS, atlas: a.TextureAtlas, pos: rl.Vector2) usize {
         .layer = c.CollisionLayer.player,
     });
     ecs.addComponent(entity_id, c.HealthLives{
+        .max_lives = 3,
         .lives = 3,
     });
 

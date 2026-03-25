@@ -36,8 +36,11 @@ pub fn SparseComponentSet(comptime T: type) type {
             sparse_set.data.append(sparse_set.allocator, component) catch @panic("Out of memory adding component");
             sparse_set.entity_ids.append(sparse_set.allocator, entity_id) catch @panic("Out of memory adding component");
 
-            if (entity_id >= sparse_set.component_indices.items.len)
+            if (entity_id >= sparse_set.component_indices.items.len) {
+                const old_len = sparse_set.component_indices.items.len;
                 sparse_set.component_indices.resize(sparse_set.allocator, entity_id + 1) catch @panic("Out of memory adding component");
+                @memset(sparse_set.component_indices.items[old_len..], EMPTY_COMPONENT_INDEX);
+            }
 
             sparse_set.component_indices.items[entity_id] = @intCast(component_index);
         }

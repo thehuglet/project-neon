@@ -14,7 +14,6 @@ pub fn drawPlayerHealth(ecs: *ECS) void {
         const health_lives: *c.HealthLives = item.get(c.HealthLives).?;
 
         var buf: [64]u8 = undefined;
-
         const text = std.fmt.bufPrintZ(&buf, "HP: {}", .{health_lives.lives}) catch unreachable;
 
         rl.drawText(text, 0, 22, 24, .white);

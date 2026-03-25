@@ -13,3 +13,11 @@ cell_width = 96
 cell_height = 96
 blur_sigma = 4.0
 alpha_scale = 2.5
+
+[[atlas]]
+input = "assets/textures/atlases/projectile_atlas.png"
+output = "assets/gen_textures/atlases/projectile_atlas.png"
+cell_width = 96
+cell_height = 96
+blur_sigma = 4.0
+alpha_scale = 2.5

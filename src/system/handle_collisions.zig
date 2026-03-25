@@ -53,13 +53,9 @@ pub fn handleCollisions(
 }
 
 fn hit(ecs: *ECS, receiver_entity_id: usize, attacker_entity_id: usize) void {
-    // ecs.removeComponent(attacker_entity_id, c.NeonSprite);
-    ecs.deleteEntity(attacker_entity_id);
     if (ecs.getComponent(receiver_entity_id, c.HealthLives)) |health| {
         health.lives -|= 1;
-
-        if (health.lives == 0) {
-            std.debug.print("PLAYER SHOULD DIE HERE\n", .{});
-        }
     }
+
+    ecs.deleteEntity(attacker_entity_id);
 }

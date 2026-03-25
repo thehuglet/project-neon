@@ -25,15 +25,15 @@ pub fn motionApplyDragFriction(ecs: *ECS) void {
             continue;
         }
 
-        const mass_scaled: f32 = motion.mass * 0.005;
-
-        const drag_force: rl.Vector2 = velocity.scale(
-            -DRAG * mass_scaled * speed * dt,
-        );
-        velocity = velocity.add(drag_force);
+        if (!motion.ignores_drag) {
+            const mass_scaled: f32 = motion.mass * 0.005;
+            const drag_force: rl.Vector2 = velocity.scale(
+                -DRAG * mass_scaled * speed * dt,
+            );
+            velocity = velocity.add(drag_force);
+        }
 
         const friction_strength: f32 = motion.friction * 20.0 * dt;
-
         if (friction_strength >= speed) {
             velocity = math.VECTOR2_ZERO;
         } else {

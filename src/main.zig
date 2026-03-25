@@ -76,6 +76,11 @@ pub fn main() !void {
         96,
         96,
     );
+    const asset_atlas_projectile: asset.TextureAtlas = .init(
+        "assets/gen_textures/atlases/projectile_atlas.png",
+        96,
+        96,
+    );
     // Shaders
     const asset_shader_neon_sprite: rl.Shader = try rl.loadShader(
         "assets/shaders/neon_sprite.vs",
@@ -94,6 +99,7 @@ pub fn main() !void {
         // Texture atlases
         asset.deinitAtlas(asset_atlas_cube);
         asset.deinitAtlas(asset_atlas_roto);
+        asset.deinitAtlas(asset_atlas_projectile);
         // Shaders
         rl.unloadShader(asset_shader_neon_sprite);
         rl.unloadShader(asset_shader_bg_starfield);
@@ -159,10 +165,17 @@ pub fn main() !void {
 
         // ------ Game logic ------
         {
-            system.switchSprites(&ecs);
-            system.setTargetToPlayer(&ecs);
-            system.chaseEntity(&ecs);
+            system.playerInputs(&ecs);
             system.playerMovement(&ecs);
+            system.playerWeaponControl(&ecs);
+            system.setTargetToPlayer(&ecs);
+            system.handleWeapons(
+                &ecs,
+                rng,
+                canvas_mouse_pos,
+                asset_atlas_projectile,
+            );
+            system.chaseEntity(&ecs);
             system.spinCosmetic(&ecs);
             system.playerRotateFacingMouseCosmetic(&ecs, canvas_mouse_pos);
             system.handleCollisions(
@@ -173,6 +186,29 @@ pub fn main() !void {
                 &temp.hurt_radii,
                 &temp.hurt_layers,
             );
+            system.despawnOOBEntities(
+                &ecs,
+                NATIVE_WIDTH_F32,
+                NATIVE_HEIGHT_F32,
+                100.0,
+            );
+
+            // ------ DIRTY TESTING FACILITY ------
+            {
+                // const math = @import("math");
+                // const pos = ecs.getComponent(player, component.Transform).?.pos;
+
+                // if (rl.isMouseButtonDown(rl.MouseButton.left)) {
+                //     const angle_offset = helpers.randomFloatRange(rng, -18.0, 18.0) * math.DEG_TO_RAD;
+
+                //     _ = entity.neon_blaster_bullet.spawn(
+                //         &ecs,
+                //         asset_atlas_cube,
+                //         pos,
+                //         math.vec2ToAngle(math.direction(pos, canvas_mouse_pos)) + angle_offset,
+                //     );
+                // }
+            }
 
             // Physics end frame calculations
             system.applyMotionToTransform(&ecs);
@@ -198,6 +234,7 @@ pub fn main() !void {
 
             // Debug drawing
             system.drawPlayerHealth(&ecs);
+            system.drawNeonSpriteEntityCount(&ecs);
 
             if (debug_settings.show_hurtboxes) {
                 system.drawDebugHurtboxes(&ecs);

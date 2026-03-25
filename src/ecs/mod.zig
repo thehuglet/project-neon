@@ -78,26 +78,43 @@ pub const ECS = struct {
             const Self = @This();
 
             ecs: *ECS,
-            primary_set: *SparseComponentSet(ComponentTypes[0]),
+            // primary_set: *SparseComponentSet(ComponentTypes[0]),
+            primary_lists: [ComponentTypes.len]*std.ArrayList(usize),
+            primary_index: usize,
             index: usize,
 
             pub fn init(ecs: *ECS) Self {
-                const primary = getSparseSetPtr(&ecs.components, ComponentTypes[0]);
+                var smallest_size: usize = std.math.maxInt(usize);
+                var best_index: usize = 0;
+                var lists: [ComponentTypes.len]*std.ArrayList(usize) = undefined;
+
+                inline for (ComponentTypes, 0..) |T, i| {
+                    const set = getSparseSetPtr(&ecs.components, T);
+                    lists[i] = &set.entity_ids;
+                    const size = set.entity_ids.items.len;
+                    if (size < smallest_size) {
+                        smallest_size = size;
+                        best_index = i;
+                    }
+                }
+
                 return Self{
                     .ecs = ecs,
-                    .primary_set = primary,
+                    .primary_lists = lists,
+                    .primary_index = best_index,
                     .index = 0,
                 };
             }
 
             pub fn next(self: *Self) ?QueryItem(ComponentTypes) {
-                while (self.index < self.primary_set.entity_ids.items.len) {
-                    const entity_id = self.primary_set.entity_ids.items[self.index];
+                const primary_list = self.primary_lists[self.primary_index];
+                while (self.index < primary_list.items.len) {
+                    const entity_id = primary_list.items[self.index];
                     self.index += 1;
 
                     var all_present = true;
-                    inline for (ComponentTypes) |Comp| {
-                        if (!self.ecs.hasComponent(entity_id, Comp)) {
+                    inline for (ComponentTypes) |T| {
+                        if (!self.ecs.hasComponent(entity_id, T)) {
                             all_present = false;
                             break;
                         }
