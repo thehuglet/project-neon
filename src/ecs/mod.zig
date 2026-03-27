@@ -335,6 +335,7 @@ pub const ECS = struct {
                         }
                     }
                     self.entity_id_pool.free(data.entity_id);
+                    self.entity_index_morgue.unset(data.entity_id.index);
                 },
             }
         }
@@ -355,8 +356,8 @@ pub const ECS = struct {
     }
 
     fn deleteEntityDeferred(self: *ECS, entity_id: EntityId) void {
-        const exceeds_morge_capacity: bool = entity_id.index >= self.entity_index_morgue.capacity();
-        if (exceeds_morge_capacity) {
+        const exceeds_morgue_capacity: bool = entity_id.index >= self.entity_index_morgue.capacity();
+        if (exceeds_morgue_capacity) {
             self.entity_index_morgue.resize(entity_id.index + 1, false) catch {
                 @panic("OOM");
             };
