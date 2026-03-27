@@ -178,6 +178,7 @@ pub fn main() !void {
             );
             system.chaseEntity(&ecs);
             system.spinCosmetic(&ecs);
+            system.spinCosmeticAccelScaled(&ecs);
             system.playerRotateFacingMouseCosmetic(&ecs, canvas_mouse_pos);
             system.handleCollisions(
                 &ecs,

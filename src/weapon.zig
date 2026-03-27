@@ -40,7 +40,7 @@ pub const WeaponInstance = struct {
 pub const STATS = std.EnumMap(WeaponId, WeaponStats).init(.{
     .noob_gun = WeaponStats{
         .primary_trigger_mode = .auto,
-        .primary_fire_rate = 8.0,
+        .primary_fire_rate = 4.0,
 
         .secondary_trigger_mode = .auto,
         .secondary_fire_rate = 4.0,

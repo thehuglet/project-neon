@@ -32,7 +32,7 @@ pub fn spawn(ecs: *ECS, rng: std.Random, atlas: a.TextureAtlas, pos: rl.Vector2)
         .sprite_index = 1,
         .color = rl.Color.init(255, 0, 128, 255),
     });
-    ecs.addComponent(entity_id, c.SpinCosmetic{
+    ecs.addComponent(entity_id, c.SpinCosmeticAccelScaled{
         .speed = 80.0,
     });
     ecs.addComponent(entity_id, c.ChaseEntity{

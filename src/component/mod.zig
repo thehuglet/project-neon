@@ -14,6 +14,7 @@ pub const Hurtbox = @import("hurtbox.zig").Hurtbox;
 // Visual
 pub const NeonSprite = @import("neon_sprite.zig").NeonSprite;
 pub const SpinCosmetic = @import("spin_cosmetic.zig").SpinCosmetic;
+pub const SpinCosmeticAccelScaled = @import("spin_cosmetic_accel_scaled.zig").SpinCosmeticAccelScaled;
 
 // Other
 pub const PlayerInput = @import("player_input.zig").PlayerInput;
@@ -49,6 +50,7 @@ pub const Registry = [_]struct {
     // Visual
     .{ .component_type = NeonSprite, .field_name = "neon_sprite" },
     .{ .component_type = SpinCosmetic, .field_name = "spin_cosmetic" },
+    .{ .component_type = SpinCosmeticAccelScaled, .field_name = "spin_cosmetic_accel_scaled" },
 
     // Other
     .{ .component_type = PlayerInput, .field_name = "player_input" },

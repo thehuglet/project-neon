@@ -20,17 +20,21 @@ pub fn spawn(ecs: *ECS, atlas: a.TextureAtlas, pos: rl.Vector2, facing_angle: f3
         .mass = 10.0,
         .friction = 0.0,
         .ignores_drag = true,
-        .velocity = math.angleToVec2(facing_angle).scale(3000.0),
+        .velocity = math.angleToVec2(facing_angle).scale(1400.0),
     });
     ecs.addComponent(entity_id, c.NeonSprite{
         .atlas = atlas,
         .sprite_index = 0,
         .color = rl.Color.init(0, 200, 0, 255),
-        .scale = 0.8,
+        .scale = 1.5,
     });
     ecs.addComponent(entity_id, c.Hitbox{
-        .radius = 10.0,
+        .radius = 16.0,
         .mask = c.CollisionLayer.enemy,
+    });
+    ecs.addComponent(entity_id, c.SpinCosmetic{
+        .clockwise = true,
+        .speed = 60.0,
     });
 
     return entity_id;

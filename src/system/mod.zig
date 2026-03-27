@@ -4,6 +4,7 @@ pub const playerWeaponControl = @import("player_weapon_control.zig").playerWeapo
 pub const playerMovement = @import("player_movement.zig").playerMovement;
 pub const playerRotateFacingMouseCosmetic = @import("player_rotate_facing_mouse_cosmetic.zig").playerRotateFacingMouseCosmetic;
 pub const spinCosmetic = @import("spin_cosmetic.zig").spinCosmetic;
+pub const spinCosmeticAccelScaled = @import("spin_cosmetic_accel_scaled.zig").spinCosmeticAccelScaled;
 pub const chaseEntity = @import("chase_entity.zig").chaseEntity;
 pub const setTargetToPlayer = @import("set_target_to_player.zig").setTargetToPlayer;
 pub const applyMotionToTransform = @import("apply_motion_to_transform.zig").applyMotionToTransform;
