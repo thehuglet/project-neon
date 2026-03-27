@@ -27,8 +27,11 @@ pub fn chaseEntity(ecs: *ECS) void {
 
         const target_transform = ecs.getComponent(targeted_entity.entity_id, c.Transform) orelse {
             std.log.err(
-                "[Invalid target] Entity {d} tried chasing entity {d} with no Transform component",
-                .{ item.entity_id, targeted_entity.entity_id },
+                "[Invalid target] Entity {f} tried chasing EntityId {f} with no Transform component",
+                .{
+                    item.entity_id,
+                    targeted_entity.entity_id,
+                },
             );
             continue;
         };

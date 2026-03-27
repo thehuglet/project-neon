@@ -2,6 +2,7 @@ const std = @import("std");
 const rl = @import("raylib");
 
 const ECS = @import("ecs").ECS;
+const EntityId = @import("ecs").EntityId;
 const entity = @import("entity");
 const component = @import("component");
 const system = @import("system");
@@ -26,7 +27,7 @@ pub fn main() !void {
 
     // Temporary storage to avoid allocations
     var temp = struct {
-        hurt_ids: std.ArrayList(usize) = .empty,
+        hurt_ids: std.ArrayList(EntityId) = .empty,
         hurt_positions: std.ArrayList(rl.Vector2) = .empty,
         hurt_radii: std.ArrayList(f32) = .empty,
         hurt_layers: std.ArrayList(u32) = .empty,
@@ -83,16 +84,16 @@ pub fn main() !void {
     );
     // Shaders
     const asset_shader_neon_sprite: rl.Shader = try rl.loadShader(
-        "assets/shaders/neon_sprite.vs",
-        "assets/shaders/neon_sprite.fs",
+        "assets/shaders/neon_sprite.vert",
+        "assets/shaders/neon_sprite.frag",
     );
     const asset_shader_bg_starfield: rl.Shader = try rl.loadShader(
         null,
-        "assets/shaders/bg_starfield.fs",
+        "assets/shaders/bg_starfield.frag",
     );
     const asset_shader_bloom: rl.Shader = try rl.loadShader(
         null,
-        "assets/shaders/bloom.fs",
+        "assets/shaders/bloom.frag",
     );
 
     defer {

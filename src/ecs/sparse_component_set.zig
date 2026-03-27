@@ -8,84 +8,98 @@ pub fn SparseComponentSet(comptime T: type) type {
 
         allocator: std.mem.Allocator,
         data: std.ArrayList(T),
-        entity_ids: std.ArrayList(usize),
-        component_indices: std.ArrayList(usize),
+        entity_indices: std.ArrayList(u32),
+        component_indices: std.ArrayList(u32),
 
         pub fn init(allocator: std.mem.Allocator) Self {
             return Self{
                 .allocator = allocator,
                 .data = .empty,
-                .entity_ids = .empty,
+                .entity_indices = .empty,
                 .component_indices = .empty,
             };
         }
 
         pub fn deinit(sparse_set: *Self) void {
             sparse_set.data.deinit(sparse_set.allocator);
-            sparse_set.entity_ids.deinit(sparse_set.allocator);
+            sparse_set.entity_indices.deinit(sparse_set.allocator);
             sparse_set.component_indices.deinit(sparse_set.allocator);
         }
 
-        pub fn addComponent(sparse_set: *Self, entity_id: usize, component: T) void {
-            if (sparse_set.hasComponent(entity_id)) {
+        pub fn addComponent(sparse_set: *Self, entity_index: u32, component: T) void {
+            if (sparse_set.hasComponent(entity_index)) {
                 return;
             }
 
-            const component_index: usize = sparse_set.data.items.len;
+            const component_index = sparse_set.data.items.len;
 
-            sparse_set.data.append(sparse_set.allocator, component) catch @panic("Out of memory adding component");
-            sparse_set.entity_ids.append(sparse_set.allocator, entity_id) catch @panic("Out of memory adding component");
+            sparse_set.data.append(sparse_set.allocator, component) catch {
+                @panic("OOM");
+            };
+            sparse_set.entity_indices.append(sparse_set.allocator, entity_index) catch {
+                @panic("OOM");
+            };
 
-            if (entity_id >= sparse_set.component_indices.items.len) {
+            const exceeds_capacity: bool = entity_index >= sparse_set.component_indices.items.len;
+            if (exceeds_capacity) {
                 const old_len = sparse_set.component_indices.items.len;
-                sparse_set.component_indices.resize(sparse_set.allocator, entity_id + 1) catch @panic("Out of memory adding component");
-                @memset(sparse_set.component_indices.items[old_len..], EMPTY_COMPONENT_INDEX);
+                sparse_set.component_indices.resize(sparse_set.allocator, entity_index + 1) catch {
+                    @panic("OOM");
+                };
+                @memset(
+                    sparse_set.component_indices.items[old_len..],
+                    EMPTY_COMPONENT_INDEX,
+                );
             }
 
-            sparse_set.component_indices.items[entity_id] = @intCast(component_index);
+            sparse_set.component_indices.items[entity_index] = @intCast(component_index);
         }
 
-        pub fn hasComponent(sparse_set: *Self, entity_id: usize) bool {
-            const entity_id_in_bounds: bool = entity_id < sparse_set.component_indices.items.len;
-            if (!entity_id_in_bounds) {
+        pub fn hasComponent(sparse_set: *Self, entity_index: u32) bool {
+            const entity_index_out_of_bounds: bool = entity_index >= sparse_set.component_indices.items.len;
+            if (entity_index_out_of_bounds) {
                 return false;
             }
 
-            const dense_index = sparse_set.component_indices.items[entity_id];
+            const dense_index = sparse_set.component_indices.items[entity_index];
 
-            const dense_index_valid: bool = dense_index < sparse_set.data.items.len;
-            if (!dense_index_valid) return false;
+            const dense_index_out_of_bounds: bool = dense_index >= sparse_set.data.items.len;
+            if (dense_index_out_of_bounds) {
+                return false;
+            }
 
-            const matches_entity: bool = sparse_set.entity_ids.items[dense_index] == entity_id;
-            return matches_entity;
+            return sparse_set.entity_indices.items[dense_index] == entity_index;
         }
-        pub fn getComponent(sparse_set: *Self, entity_id: usize) ?*T {
-            if (!sparse_set.hasComponent(entity_id)) {
+
+        pub fn getComponent(sparse_set: *Self, entity_index: u32) ?*T {
+            if (!sparse_set.hasComponent(entity_index)) {
                 return null;
             }
 
-            const dense_index: usize = sparse_set.component_indices.items[entity_id];
+            const dense_index = sparse_set.component_indices.items[entity_index];
             return &sparse_set.data.items[dense_index];
         }
 
-        pub fn removeComponent(sparse_set: *Self, entity_id: usize) void {
-            if (!sparse_set.hasComponent(entity_id)) return;
+        pub fn removeComponent(sparse_set: *Self, entity_index: u32) void {
+            if (!sparse_set.hasComponent(entity_index)) {
+                return;
+            }
 
-            const dense_index: usize = sparse_set.component_indices.items[entity_id];
-            const last_index: usize = sparse_set.data.items.len - 1;
+            const dense_index = sparse_set.component_indices.items[entity_index];
+            const last_index = sparse_set.data.items.len - 1;
 
             if (dense_index != last_index) {
                 sparse_set.data.items[dense_index] = sparse_set.data.items[last_index];
-                sparse_set.entity_ids.items[dense_index] = sparse_set.entity_ids.items[last_index];
+                sparse_set.entity_indices.items[dense_index] = sparse_set.entity_indices.items[last_index];
 
-                const moved_entity_id: usize = sparse_set.entity_ids.items[dense_index];
+                const moved_entity_id = sparse_set.entity_indices.items[dense_index];
                 sparse_set.component_indices.items[moved_entity_id] = dense_index;
             }
 
             _ = sparse_set.data.pop();
-            _ = sparse_set.entity_ids.pop();
+            _ = sparse_set.entity_indices.pop();
 
-            sparse_set.component_indices.items[entity_id] = EMPTY_COMPONENT_INDEX;
+            sparse_set.component_indices.items[entity_index] = EMPTY_COMPONENT_INDEX;
         }
     };
 }

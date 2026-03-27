@@ -1,6 +1,6 @@
 #version 330
 
-// https://github.com/raysan5/raylib/blob/master/examples/shaders/resources/shaders/glsl100/bloom.fs
+// https://github.com/raysan5/raylib/blob/master/examples/shaders/resources/shaders/glsl100/bloom.frag
 
 precision mediump float;
 

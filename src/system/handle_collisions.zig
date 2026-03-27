@@ -3,12 +3,13 @@ const std = @import("std");
 const rl = @import("raylib");
 
 const ECS = @import("ecs").ECS;
+const EntityId = @import("ecs").EntityId;
 const c = @import("component");
 
 pub fn handleCollisions(
     ecs: *ECS,
     allocator: std.mem.Allocator,
-    hurt_ids: *std.ArrayList(usize),
+    hurt_ids: *std.ArrayList(EntityId),
     hurt_positions: *std.ArrayList(rl.Vector2),
     hurt_radii: *std.ArrayList(f32),
     hurt_layers: *std.ArrayList(u32),
@@ -45,17 +46,17 @@ pub fn handleCollisions(
             const dist_sq = dx * dx + dy * dy;
             const rad_sum = hitbox.radius + hurt_radii.items[i];
             if (dist_sq < rad_sum * rad_sum) {
-                const receiver_entity_id: usize = hurt_ids.items[i];
+                const receiver_entity_id: EntityId = hurt_ids.items[i];
                 hit(ecs, receiver_entity_id, hit_item.entity_id);
             }
         }
     }
 }
 
-fn hit(ecs: *ECS, receiver_entity_id: usize, attacker_entity_id: usize) void {
-    if (ecs.getComponent(receiver_entity_id, c.HealthLives)) |health| {
+fn hit(ecs: *ECS, receiver: EntityId, attacker: EntityId) void {
+    if (ecs.getComponent(receiver, c.HealthLives)) |health| {
         health.lives -|= 1;
     }
 
-    ecs.deleteEntity(attacker_entity_id);
+    ecs.deleteEntity(attacker);
 }

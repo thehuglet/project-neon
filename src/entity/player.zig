@@ -1,12 +1,13 @@
 const rl = @import("raylib");
 
 const ECS = @import("ecs").ECS;
+const EntityId = @import("ecs").EntityId;
 const c = @import("component");
 const a = @import("asset");
 
 const weapon = @import("weapon");
 
-pub fn spawn(ecs: *ECS, atlas: a.TextureAtlas, pos: rl.Vector2) usize {
+pub fn spawn(ecs: *ECS, atlas: a.TextureAtlas, pos: rl.Vector2) EntityId {
     const entity_id = ecs.assignEntityId();
 
     ecs.addComponent(entity_id, c.Player{});

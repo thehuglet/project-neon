@@ -30,7 +30,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const raylib_mod = raylib_dep.module("raylib");
-    const raygui_mod = raylib_dep.module("raygui");
+    // const raygui_mod = raylib_dep.module("raygui");
     const raylib_artifact = raylib_dep.artifact("raylib");
 
     // ------ All-to-all global module mappings ------
@@ -68,7 +68,7 @@ pub fn build(b: *std.Build) void {
         }
 
         item_a.mod.addImport("raylib", raylib_mod);
-        item_a.mod.addImport("raygui", raygui_mod);
+        // item_a.mod.addImport("raygui", raygui_mod);
     }
 
     const exe = b.addExecutable(.{
@@ -89,7 +89,7 @@ pub fn build(b: *std.Build) void {
         exe.root_module.addImport(item.name, item.mod);
     }
     exe.root_module.addImport("raylib", raylib_mod);
-    exe.root_module.addImport("raygui", raygui_mod);
+    // exe.root_module.addImport("raygui", raygui_mod);
 
     b.installArtifact(exe);
 

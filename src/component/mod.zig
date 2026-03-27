@@ -30,38 +30,38 @@ pub const SpriteSwitcher = @import("sprite_switcher.zig").SpriteSwitcher;
 
 /// Components registered here will be available in the ECS.
 pub const Registry = [_]struct {
-    T: type,
+    component_type: type,
     field_name: [:0]const u8,
 }{
     // Markers
-    .{ .T = Player, .field_name = "player" },
-    .{ .T = TargetsPlayer, .field_name = "targets_player" },
-    .{ .T = DespawnsWhenOOB, .field_name = "despawns_when_oob" },
+    .{ .component_type = Player, .field_name = "player" },
+    .{ .component_type = TargetsPlayer, .field_name = "targets_player" },
+    .{ .component_type = DespawnsWhenOOB, .field_name = "despawns_when_oob" },
 
     // Health
-    .{ .T = Health, .field_name = "health" },
-    .{ .T = HealthLives, .field_name = "health_lives" },
+    .{ .component_type = Health, .field_name = "health" },
+    .{ .component_type = HealthLives, .field_name = "health_lives" },
 
     // Collision
-    .{ .T = Hitbox, .field_name = "hitbox" },
-    .{ .T = Hurtbox, .field_name = "hurtbox" },
+    .{ .component_type = Hitbox, .field_name = "hitbox" },
+    .{ .component_type = Hurtbox, .field_name = "hurtbox" },
 
     // Visual
-    .{ .T = NeonSprite, .field_name = "neon_sprite" },
-    .{ .T = SpinCosmetic, .field_name = "spin_cosmetic" },
+    .{ .component_type = NeonSprite, .field_name = "neon_sprite" },
+    .{ .component_type = SpinCosmetic, .field_name = "spin_cosmetic" },
 
     // Other
-    .{ .T = PlayerInput, .field_name = "player_input" },
-    .{ .T = Transform, .field_name = "transform" },
-    .{ .T = Movement, .field_name = "movement" },
-    .{ .T = Motion, .field_name = "motion" },
-    .{ .T = TargetedEntity, .field_name = "targeted_entity" },
-    .{ .T = ChaseEntity, .field_name = "chase_entity" },
-    .{ .T = WeaponSlots, .field_name = "weapon_slots" },
-    .{ .T = WeaponUseIntent, .field_name = "weapon_use_intent" },
+    .{ .component_type = PlayerInput, .field_name = "player_input" },
+    .{ .component_type = Transform, .field_name = "transform" },
+    .{ .component_type = Movement, .field_name = "movement" },
+    .{ .component_type = Motion, .field_name = "motion" },
+    .{ .component_type = TargetedEntity, .field_name = "targeted_entity" },
+    .{ .component_type = ChaseEntity, .field_name = "chase_entity" },
+    .{ .component_type = WeaponSlots, .field_name = "weapon_slots" },
+    .{ .component_type = WeaponUseIntent, .field_name = "weapon_use_intent" },
 
     // Debug
-    .{ .T = SpriteSwitcher, .field_name = "sprite_switcher" },
+    .{ .component_type = SpriteSwitcher, .field_name = "sprite_switcher" },
 };
 
 pub const CollisionLayer = struct {

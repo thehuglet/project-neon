@@ -1,12 +1,13 @@
 const rl = @import("raylib");
 
 const ECS = @import("ecs").ECS;
+const EntityId = @import("ecs").EntityId;
 const c = @import("component");
 const a = @import("asset");
 
 const math = @import("math");
 
-pub fn spawn(ecs: *ECS, atlas: a.TextureAtlas, pos: rl.Vector2, facing_angle: f32) usize {
+pub fn spawn(ecs: *ECS, atlas: a.TextureAtlas, pos: rl.Vector2, facing_angle: f32) EntityId {
     const entity_id = ecs.assignEntityId();
 
     ecs.addComponent(entity_id, c.DespawnsWhenOOB{});
@@ -19,7 +20,7 @@ pub fn spawn(ecs: *ECS, atlas: a.TextureAtlas, pos: rl.Vector2, facing_angle: f3
         .mass = 10.0,
         .friction = 0.0,
         .ignores_drag = true,
-        .velocity = math.angleToVec2(facing_angle).scale(800.0),
+        .velocity = math.angleToVec2(facing_angle).scale(3000.0),
     });
     ecs.addComponent(entity_id, c.NeonSprite{
         .atlas = atlas,

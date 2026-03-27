@@ -2,270 +2,343 @@ const std = @import("std");
 
 const ComponentRegistry = @import("component").Registry;
 
+pub const EntityId = @import("entity_id_pool.zig").EntityId;
 const EntityIdPool = @import("entity_id_pool.zig").EntityIdPool;
 const SparseComponentSet = @import("sparse_component_set.zig").SparseComponentSet;
 
+const ComponentTag = blk: {
+    var enum_fields: [ComponentRegistry.len]std.builtin.Type.EnumField = undefined;
+    for (ComponentRegistry, 0..) |entry, i| {
+        enum_fields[i] = .{
+            .name = entry.field_name,
+            .value = i,
+        };
+    }
+    break :blk @Type(.{
+        .@"enum" = .{
+            .tag_type = u8,
+            .fields = enum_fields[0..],
+            .decls = &.{},
+            .is_exhaustive = true,
+        },
+    });
+};
+
+const ComponentUnion = blk: {
+    const field_count = ComponentRegistry.len;
+    var fields: [field_count]std.builtin.Type.UnionField = undefined;
+    for (ComponentRegistry, 0..) |entry, i| {
+        fields[i] = .{
+            .name = entry.field_name,
+            .type = entry.component_type,
+            .alignment = @alignOf(entry.component_type),
+        };
+    }
+    break :blk @Type(.{
+        .@"union" = .{
+            .layout = .auto,
+            .tag_type = ComponentTag,
+            .fields = fields[0..],
+            .decls = &.{},
+        },
+    });
+};
+
+const ComponentState = blk: {
+    const field_count = ComponentRegistry.len;
+    var fields: [field_count]std.builtin.Type.StructField = undefined;
+    for (ComponentRegistry, 0..) |entry, i| {
+        const FieldType = SparseComponentSet(entry.component_type);
+        fields[i] = .{
+            .name = entry.field_name,
+            .type = FieldType,
+            .default_value_ptr = null,
+            .is_comptime = false,
+            .alignment = @alignOf(FieldType),
+        };
+    }
+    break :blk @Type(.{
+        .@"struct" = .{
+            .layout = .auto,
+            .fields = fields[0..],
+            .decls = &.{},
+            .is_tuple = false,
+        },
+    });
+};
+
+const Operation = union(enum) {
+    add_component: struct { entity_id: EntityId, component: ComponentUnion },
+    remove_component: struct { entity_id: EntityId, tag: ComponentTag },
+    delete_entity: struct { entity_id: EntityId },
+};
+
+pub fn Query(comptime ComponentTypes: anytype) type {
+    return struct {
+        const Self = @This();
+
+        ecs: *ECS,
+        candidate_component_lists: [ComponentTypes.len]*std.ArrayList(u32),
+        primary_index: usize,
+        index: usize,
+
+        pub fn init(ecs: *ECS) Self {
+            var smallest_size: usize = std.math.maxInt(u32);
+            var best_index: usize = 0;
+            var lists: [ComponentTypes.len]*std.ArrayList(u32) = undefined;
+
+            inline for (ComponentTypes, 0..) |T, i| {
+                const set = componentFieldPtr(&ecs.components, T);
+                lists[i] = &set.entity_indices;
+                const size = set.entity_indices.items.len;
+                if (size < smallest_size) {
+                    smallest_size = size;
+                    best_index = i;
+                }
+            }
+
+            return Self{
+                .ecs = ecs,
+                .candidate_component_lists = lists,
+                .primary_index = best_index,
+                .index = 0,
+            };
+        }
+
+        pub fn next(self: *Self) ?QueryItem(ComponentTypes) {
+            const primary_list = self.candidate_component_lists[self.primary_index];
+            while (self.index < primary_list.items.len) {
+                const entity_index = primary_list.items[self.index];
+                self.index += 1;
+
+                var all_present = true;
+                inline for (ComponentTypes) |T| {
+                    const set = componentFieldPtr(&self.ecs.components, T);
+                    if (!set.hasComponent(entity_index)) {
+                        all_present = false;
+                        break;
+                    }
+                }
+                if (all_present) {
+                    const generation = self.ecs.entity_id_pool.getGeneration(entity_index);
+                    const entity_id = EntityId{ .index = entity_index, .generation = generation };
+                    return QueryItem(ComponentTypes).init(self.ecs, entity_id);
+                    // return QueryItem(ComponentTypes).init(self.ecs, entity_index);
+                }
+            }
+            return null;
+        }
+    };
+}
+
+pub fn QueryItem(_: anytype) type {
+    return struct {
+        ecs: *ECS,
+        entity_id: EntityId,
+
+        fn init(ecs: *ECS, entity_id: EntityId) @This() {
+            return .{ .ecs = ecs, .entity_id = entity_id };
+        }
+
+        pub fn get(self: @This(), comptime T: type) ?*T {
+            return self.ecs.getComponent(self.entity_id, T);
+        }
+    };
+}
+
 pub const ECS = struct {
-    const ComponentTag = blk: {
-        var enum_fields: [ComponentRegistry.len]std.builtin.Type.EnumField = undefined;
-        for (ComponentRegistry, 0..) |entry, i| {
-            enum_fields[i] = .{
-                .name = entry.field_name,
-                .value = i,
-            };
-        }
-        break :blk @Type(.{
-            .@"enum" = .{
-                .tag_type = u8,
-                .fields = enum_fields[0..],
-                .decls = &.{},
-                .is_exhaustive = true,
-            },
-        });
-    };
-
-    const ComponentUnion = blk: {
-        const field_count = ComponentRegistry.len;
-        var fields: [field_count]std.builtin.Type.UnionField = undefined;
-        for (ComponentRegistry, 0..) |entry, i| {
-            fields[i] = .{
-                .name = entry.field_name,
-                .type = entry.T,
-                .alignment = @alignOf(entry.T),
-            };
-        }
-        break :blk @Type(.{
-            .@"union" = .{
-                .layout = .auto,
-                .tag_type = ComponentTag,
-                .fields = fields[0..],
-                .decls = &.{},
-            },
-        });
-    };
-
-    const ComponentState = blk: {
-        const field_count = ComponentRegistry.len;
-        var fields: [field_count]std.builtin.Type.StructField = undefined;
-        for (ComponentRegistry, 0..) |entry, i| {
-            const FieldType = SparseComponentSet(entry.T);
-            fields[i] = .{
-                .name = entry.field_name,
-                .type = FieldType,
-                .default_value_ptr = null,
-                .is_comptime = false,
-                .alignment = @alignOf(FieldType),
-            };
-        }
-        break :blk @Type(.{
-            .@"struct" = .{
-                .layout = .auto,
-                .fields = fields[0..],
-                .decls = &.{},
-                .is_tuple = false,
-            },
-        });
-    };
-
-    const Operation = union(enum) {
-        add_component: struct { entity_id: usize, comp: ComponentUnion },
-        remove_component: struct { entity_id: usize, tag: ComponentTag },
-        delete_entity: struct { entity_id: usize },
-    };
-
-    pub fn Query(comptime ComponentTypes: anytype) type {
-        return struct {
-            const Self = @This();
-
-            ecs: *ECS,
-            // primary_set: *SparseComponentSet(ComponentTypes[0]),
-            primary_lists: [ComponentTypes.len]*std.ArrayList(usize),
-            primary_index: usize,
-            index: usize,
-
-            pub fn init(ecs: *ECS) Self {
-                var smallest_size: usize = std.math.maxInt(usize);
-                var best_index: usize = 0;
-                var lists: [ComponentTypes.len]*std.ArrayList(usize) = undefined;
-
-                inline for (ComponentTypes, 0..) |T, i| {
-                    const set = getSparseSetPtr(&ecs.components, T);
-                    lists[i] = &set.entity_ids;
-                    const size = set.entity_ids.items.len;
-                    if (size < smallest_size) {
-                        smallest_size = size;
-                        best_index = i;
-                    }
-                }
-
-                return Self{
-                    .ecs = ecs,
-                    .primary_lists = lists,
-                    .primary_index = best_index,
-                    .index = 0,
-                };
-            }
-
-            pub fn next(self: *Self) ?QueryItem(ComponentTypes) {
-                const primary_list = self.primary_lists[self.primary_index];
-                while (self.index < primary_list.items.len) {
-                    const entity_id = primary_list.items[self.index];
-                    self.index += 1;
-
-                    var all_present = true;
-                    inline for (ComponentTypes) |T| {
-                        if (!self.ecs.hasComponent(entity_id, T)) {
-                            all_present = false;
-                            break;
-                        }
-                    }
-                    if (all_present) {
-                        return QueryItem(ComponentTypes).init(self.ecs, entity_id);
-                    }
-                }
-                return null;
-            }
-        };
-    }
-
-    pub fn QueryItem(_: anytype) type {
-        return struct {
-            ecs: *ECS,
-            entity_id: usize,
-
-            fn init(ecs: *ECS, entity_id: usize) @This() {
-                return .{ .ecs = ecs, .entity_id = entity_id };
-            }
-
-            pub fn get(self: @This(), comptime T: type) ?*T {
-                return self.ecs.getComponent(self.entity_id, T);
-            }
-        };
-    }
-
+    allocator: std.mem.Allocator,
     components: ComponentState,
     entity_id_pool: EntityIdPool,
     operation_queue: std.ArrayList(Operation),
     query_active: bool,
-    allocator: std.mem.Allocator,
+    /// Tracks entity indices pending deletion
+    entity_index_morgue: std.DynamicBitSet,
 
     pub fn init(allocator: std.mem.Allocator) ECS {
         var ecs: ECS = undefined;
-        inline for (ComponentRegistry) |C| {
-            @field(&ecs.components, C.field_name) = SparseComponentSet(C.T).init(allocator);
+        inline for (ComponentRegistry) |entry| {
+            const set: SparseComponentSet(entry.component_type) = .init(allocator);
+            @field(&ecs.components, entry.field_name) = set;
         }
-        ecs.entity_id_pool = EntityIdPool.init();
-        ecs.operation_queue = .empty;
-        ecs.query_active = false;
+
         ecs.allocator = allocator;
+        ecs.entity_id_pool = EntityIdPool.init(allocator);
+        ecs.operation_queue = std.ArrayList(Operation).empty;
+        ecs.entity_index_morgue = std.DynamicBitSet.initEmpty(
+            allocator,
+            256,
+        ) catch {
+            @panic("OOM");
+        };
+        ecs.query_active = false;
+
         return ecs;
     }
 
     pub fn deinit(self: *ECS) void {
-        self.operation_queue.deinit(self.allocator);
         inline for (ComponentRegistry) |C| {
             @field(&self.components, C.field_name).deinit();
         }
-        self.entity_id_pool.deinit(self.allocator);
+
+        self.operation_queue.deinit(self.allocator);
+        self.entity_id_pool.deinit();
+        self.entity_index_morgue.deinit();
     }
 
-    pub fn addComponent(self: *ECS, entity_id: usize, value: anytype) void {
-        const T = @TypeOf(value);
+    pub fn assignEntityId(self: *ECS) EntityId {
+        const id: EntityId = self.entity_id_pool.assign();
 
-        if (self.query_active) {
-            const comp = blk: {
-                inline for (ComponentRegistry) |entry| {
-                    if (T == entry.T) {
-                        break :blk @unionInit(ComponentUnion, entry.field_name, value);
-                    }
-                }
-                // T is guaranteed to be in the registry
-                unreachable;
+        if (id.index >= self.entity_index_morgue.capacity()) {
+            self.entity_index_morgue.resize(id.index + 1, false) catch {
+                @panic("OOM");
             };
-            self.operation_queue.append(self.allocator, .{ .add_component = .{ .entity_id = entity_id, .comp = comp } }) catch @panic("Out of memory");
-        } else {
-            const set = getSparseSetPtr(&self.components, T);
-            set.addComponent(entity_id, value);
         }
+
+        return id;
     }
 
-    pub fn removeComponent(self: *ECS, entity_id: usize, comptime T: type) void {
+    pub fn addComponent(self: *ECS, entity_id: EntityId, value: anytype) void {
+        if (!self.entity_id_pool.isAlive(entity_id)) {
+            return;
+        }
+
+        const ComponentType = @TypeOf(value);
+
+        if (!self.query_active) {
+            const set = componentFieldPtr(&self.components, ComponentType);
+            set.addComponent(entity_id.index, value);
+            return;
+        }
+
+        const component = lookup_component_type: {
+            inline for (ComponentRegistry) |entry| {
+                if (ComponentType != entry.component_type) {
+                    continue;
+                }
+
+                break :lookup_component_type @unionInit(
+                    ComponentUnion,
+                    entry.field_name,
+                    value,
+                );
+            }
+
+            // ComponentType is guaranteed to be in the registry
+            unreachable;
+        };
+
+        self.operation_queue.append(self.allocator, Operation{
+            .add_component = .{
+                .entity_id = entity_id,
+                .component = component,
+            },
+        }) catch {
+            @panic("OOM");
+        };
+    }
+
+    pub fn removeComponent(self: *ECS, entity_id: EntityId, comptime T: type) void {
+        if (!self.entity_id_pool.isAlive(entity_id)) {
+            return;
+        }
+
         comptime var tag: ?ComponentTag = null;
+
         inline for (ComponentRegistry, 0..) |entry, i| {
-            if (T == entry.T) {
+            if (T == entry.component_type) {
                 tag = @as(ComponentTag, @enumFromInt(i));
                 break;
             }
         }
-        const tag_value = tag orelse @compileError("Unsupported component type");
+        const tag_value = tag orelse {
+            @compileError("No component of type " ++ @typeName(T) ++ " registered in the ECS");
+        };
 
+        if (!self.query_active) {
+            componentFieldPtr(&self.components, T).removeComponent(entity_id.index);
+
+            return;
+        }
+
+        self.operation_queue.append(self.allocator, Operation{
+            .remove_component = .{
+                .entity_id = entity_id,
+                .tag = tag_value,
+            },
+        }) catch {
+            @panic("OOM");
+        };
+    }
+
+    pub fn hasComponent(self: *ECS, entity_id: EntityId, comptime T: type) bool {
+        if (!self.entity_id_pool.isAlive(entity_id)) {
+            return false;
+        }
+
+        return componentFieldPtr(&self.components, T).hasComponent(entity_id.index);
+    }
+
+    pub fn getComponent(self: *ECS, entity_id: EntityId, comptime T: type) ?*T {
+        if (!self.entity_id_pool.isAlive(entity_id)) {
+            return null;
+        }
+
+        return componentFieldPtr(&self.components, T).getComponent(entity_id.index);
+    }
+
+    pub fn deleteEntity(self: *ECS, entity_id: EntityId) void {
         if (self.query_active) {
-            self.operation_queue.append(self.allocator, .{ .remove_component = .{ .entity_id = entity_id, .tag = tag_value } }) catch @panic("Out of memory");
+            self.deleteEntityDeferred(entity_id);
         } else {
-            getSparseSetPtr(&self.components, T).removeComponent(entity_id);
+            self.deleteEntityImmediate(entity_id);
         }
     }
 
-    pub fn hasComponent(self: *ECS, entity_id: usize, comptime T: type) bool {
-        return getSparseSetPtr(&self.components, T).hasComponent(entity_id);
-    }
-
-    pub fn getComponent(self: *ECS, entity_id: usize, comptime T: type) ?*T {
-        return getSparseSetPtr(&self.components, T).getComponent(entity_id);
-    }
-
-    pub fn assignEntityId(self: *ECS) usize {
-        return self.entity_id_pool.assignEntityId();
-    }
-
-    pub fn deleteEntity(self: *ECS, entity_id: usize) void {
-        if (self.query_active) {
-            self.operation_queue.append(self.allocator, .{ .delete_entity = .{ .entity_id = entity_id } }) catch @panic("OOM");
-        } else {
-            inline for (ComponentRegistry) |entry| {
-                if (self.hasComponent(entity_id, entry.T)) {
-                    getSparseSetPtr(&self.components, entry.T).removeComponent(entity_id);
-                }
-            }
-            _ = self.entity_id_pool.freeEntityId(self.allocator, entity_id);
-        }
+    pub fn entityIsAlive(self: *ECS, entity_id: EntityId) bool {
+        return self.entity_id_pool.isAlive(entity_id);
     }
 
     pub fn flush(self: *ECS) void {
         for (self.operation_queue.items) |op| {
             switch (op) {
-                .add_component => |a| {
-                    switch (a.comp) {
+                .add_component => |data| {
+                    switch (data.component) {
                         inline else => |value| {
                             const T = @TypeOf(value);
-                            const set = getSparseSetPtr(&self.components, T);
-                            set.addComponent(a.entity_id, value);
+                            const field_ptr = componentFieldPtr(
+                                &self.components,
+                                T,
+                            );
+                            field_ptr.addComponent(data.entity_id.index, value);
                         },
                     }
                 },
-                .remove_component => |r| {
+                .remove_component => |data| {
+                    if (!self.entity_id_pool.isAlive(data.entity_id)) continue;
                     inline for (ComponentRegistry, 0..) |entry, i| {
-                        if (@intFromEnum(r.tag) == i) {
-                            getSparseSetPtr(&self.components, entry.T).removeComponent(r.entity_id);
+                        if (@intFromEnum(data.tag) == i) {
+                            const field_ptr = componentFieldPtr(&self.components, entry.component_type);
+                            field_ptr.removeComponent(data.entity_id.index);
                             break;
                         }
                     }
                 },
-                .delete_entity => |d| {
+                .delete_entity => |data| {
                     inline for (ComponentRegistry) |entry| {
-                        if (self.hasComponent(d.entity_id, entry.T)) {
-                            getSparseSetPtr(&self.components, entry.T).removeComponent(d.entity_id);
+                        if (self.hasComponent(data.entity_id, entry.component_type)) {
+                            const field_ptr = componentFieldPtr(
+                                &self.components,
+                                entry.component_type,
+                            );
+                            field_ptr.removeComponent(data.entity_id.index);
                         }
                     }
-                    self.entity_id_pool.freeEntityId(self.allocator, d.entity_id);
+                    self.entity_id_pool.free(data.entity_id);
                 },
             }
         }
         self.operation_queue.clearRetainingCapacity();
-    }
-
-    pub fn query(self: *ECS, comptime queried_components: anytype) Query(queried_components) {
-        return Query(queried_components).init(self);
     }
 
     pub fn beginQuery(self: *ECS) void {
@@ -277,12 +350,47 @@ pub const ECS = struct {
         self.flush();
     }
 
-    fn getSparseSetPtr(comps: *ComponentState, comptime T: type) *SparseComponentSet(T) {
+    pub fn query(self: *ECS, comptime queried_components: anytype) Query(queried_components) {
+        return Query(queried_components).init(self);
+    }
+
+    fn deleteEntityDeferred(self: *ECS, entity_id: EntityId) void {
+        const exceeds_morge_capacity: bool = entity_id.index >= self.entity_index_morgue.capacity();
+        if (exceeds_morge_capacity) {
+            self.entity_index_morgue.resize(entity_id.index + 1, false) catch {
+                @panic("OOM");
+            };
+        }
+
+        const already_in_morgue: bool = self.entity_index_morgue.isSet(entity_id.index);
+        if (already_in_morgue) {
+            return;
+        }
+
+        const operation: Operation = .{
+            .delete_entity = .{ .entity_id = entity_id },
+        };
+        self.operation_queue.append(self.allocator, operation) catch {
+            @panic("OOM");
+        };
+        self.entity_index_morgue.set(entity_id.index);
+    }
+
+    fn deleteEntityImmediate(self: *ECS, entity_id: EntityId) void {
         inline for (ComponentRegistry) |entry| {
-            if (T == entry.T) {
-                return &@field(comps, entry.field_name);
+            if (self.hasComponent(entity_id, entry.component_type)) {
+                componentFieldPtr(&self.components, entry.component_type).removeComponent(entity_id.index);
             }
         }
-        @compileError("No component of type " ++ @typeName(T) ++ " registered in ECS");
+        self.entity_id_pool.free(entity_id);
     }
 };
+
+fn componentFieldPtr(comps: *ComponentState, comptime T: type) *SparseComponentSet(T) {
+    inline for (ComponentRegistry) |entry| {
+        if (T == entry.component_type) {
+            return &@field(comps, entry.field_name);
+        }
+    }
+    @compileError("No component of type " ++ @typeName(T) ++ " registered in the ECS");
+}
