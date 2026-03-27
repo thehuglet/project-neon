@@ -58,7 +58,7 @@ pub fn main() !void {
         .msaa_4x_hint = true,
     });
     rl.initWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Project Neon");
-    rl.setTargetFPS(0);
+    rl.setTargetFPS(144);
     defer rl.closeWindow();
 
     // ------ ECS ------

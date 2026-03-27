@@ -14,6 +14,8 @@ pub fn handleCollisions(
     hurt_radii: *std.ArrayList(f32),
     hurt_layers: *std.ArrayList(u32),
 ) void {
+    const dt: f32 = rl.getFrameTime();
+
     // Collect hurtboxes
     var hurt_query = ecs.query(.{
         c.Transform,
@@ -32,22 +34,34 @@ pub fn handleCollisions(
     var hit_query = ecs.query(.{
         c.Transform,
         c.Hitbox,
+        c.Motion,
     });
     while (hit_query.next()) |hit_item| {
         const hit_transform = hit_item.get(c.Transform).?;
         const hitbox = hit_item.get(c.Hitbox).?;
+        const motion = hit_item.get(c.Motion).?;
+
+        const future_pos = rl.math.vector2Add(
+            hit_transform.pos,
+            rl.math.vector2Scale(motion.velocity, dt),
+        );
 
         for (0..hurt_ids.items.len) |i| {
             if (hit_item.entity_id == hurt_ids.items[i]) continue;
             if ((hitbox.mask & hurt_layers.items[i]) == 0) continue;
 
-            const dx = hit_transform.pos.x - hurt_positions.items[i].x;
-            const dy = hit_transform.pos.y - hurt_positions.items[i].y;
-            const dist_sq = dx * dx + dy * dy;
-            const rad_sum = hitbox.radius + hurt_radii.items[i];
-            if (dist_sq < rad_sum * rad_sum) {
-                const receiver_entity_id: EntityId = hurt_ids.items[i];
-                hit(ecs, receiver_entity_id, hit_item.entity_id);
+            const hurt_center = hurt_positions.items[i];
+            const hurt_radius = hurt_radii.items[i];
+            const total_radius = hitbox.radius + hurt_radius;
+
+            // Swept test: line segment from current pos to future pos
+            if (circleLineSegmentCollision(
+                hurt_center,
+                total_radius,
+                hit_transform.pos,
+                future_pos,
+            )) {
+                hit(ecs, hurt_ids.items[i], hit_item.entity_id);
             }
         }
     }
@@ -59,4 +73,27 @@ fn hit(ecs: *ECS, receiver: EntityId, attacker: EntityId) void {
     }
 
     ecs.deleteEntity(attacker);
+}
+
+fn circleLineSegmentCollision(
+    center: rl.Vector2,
+    radius: f32,
+    a: rl.Vector2,
+    b: rl.Vector2,
+) bool {
+    const ab = rl.math.vector2Subtract(b, a);
+    const ac = rl.math.vector2Subtract(center, a);
+    const dot_ab_ab = rl.math.vector2DotProduct(ab, ab);
+
+    if (dot_ab_ab == 0.0) {
+        const diff = rl.math.vector2Subtract(center, a);
+        return diff.x * diff.x + diff.y * diff.y <= radius * radius;
+    }
+
+    const t = rl.math.vector2DotProduct(ac, ab) / dot_ab_ab;
+    const t_clamped = std.math.clamp(t, 0.0, 1.0);
+    const closest = rl.math.vector2Add(a, rl.math.vector2Scale(ab, t_clamped));
+    const diff = rl.math.vector2Subtract(closest, center);
+    const dist_sq = diff.x * diff.x + diff.y * diff.y;
+    return dist_sq <= radius * radius;
 }

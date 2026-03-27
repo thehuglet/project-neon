@@ -18,7 +18,8 @@ pub fn spawn(ecs: *ECS, rng: std.Random, atlas: a.TextureAtlas, pos: rl.Vector2)
         .friction = 0.0,
     });
     ecs.addComponent(entity_id, c.Movement{
-        .max_speed = helpers.randomFloatRange(rng, 1000, 1200.0),
+        // .max_speed = helpers.randomFloatRange(rng, 1000, 1200.0),
+        .max_speed = 0.0,
         .accel_time = helpers.randomFloatRange(rng, 1.3, 1.0),
     });
 
