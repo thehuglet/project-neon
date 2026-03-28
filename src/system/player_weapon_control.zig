@@ -12,7 +12,8 @@ pub fn playerWeaponControl(ecs: *ECS) void {
         const player_input: *c.PlayerInput = item.get(c.PlayerInput).?;
         const use_intent: *c.WeaponUseIntent = item.get(c.WeaponUseIntent).?;
 
-        use_intent.use_primary_fire = player_input.use_primary_fire;
-        use_intent.use_secondary_fire = player_input.use_secondary_fire;
+        const is_dashing: bool = ecs.hasComponent(item.entity_id, c.Dashing);
+        use_intent.use_primary_fire = player_input.use_primary_fire and !is_dashing;
+        use_intent.use_secondary_fire = player_input.use_secondary_fire and !is_dashing;
     }
 }

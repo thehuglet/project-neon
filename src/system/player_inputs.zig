@@ -14,7 +14,7 @@ pub fn playerInputs(ecs: *ECS) void {
         player_input.move_down = rl.isKeyDown(rl.KeyboardKey.s);
         player_input.move_left = rl.isKeyDown(rl.KeyboardKey.a);
         player_input.move_right = rl.isKeyDown(rl.KeyboardKey.d);
-        player_input.dash = rl.isKeyDown(rl.KeyboardKey.space);
+        player_input.dash = rl.isKeyPressed(rl.KeyboardKey.space);
         player_input.use_primary_fire = rl.isMouseButtonDown(rl.MouseButton.left);
         player_input.use_secondary_fire = rl.isMouseButtonDown(rl.MouseButton.right);
     }

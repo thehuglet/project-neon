@@ -3,26 +3,28 @@ const rl = @import("raylib");
 const ECS = @import("ecs").ECS;
 const c = @import("component");
 
-const helpers = @import("helpers");
+const math = @import("math");
 
-pub fn playerMovement(ecs: *ECS) void {
-    const dt: f32 = rl.getFrameTime();
-
+pub fn playerDashInit(ecs: *ECS) void {
     var query = ecs.query(.{
         c.PlayerInput,
-        c.Motion,
-        c.Movement,
     });
     while (query.next()) |item| {
         const player_input: *c.PlayerInput = item.get(c.PlayerInput).?;
-        const motion: *c.Motion = item.get(c.Motion).?;
-        const movement: *c.Movement = item.get(c.Movement).?;
 
-        const direction: rl.Vector2 = inputDirection(player_input);
         const is_dashing: bool = ecs.hasComponent(item.entity_id, c.Dashing);
 
-        if (direction.length() > 0.0 and !is_dashing) {
-            helpers.accelerate(motion, movement, direction, dt);
+        if (player_input.dash and !is_dashing) {
+            ecs.addComponent(item.entity_id, c.Dashing{
+                .speed = 2000.0,
+                .remaining_distance = 200.0,
+                .direction = inputDirection(player_input),
+                .trail = .{
+                    .ghost_spawner = .{
+                        .spawn_rate = 80.0,
+                    },
+                },
+            });
         }
     }
 }

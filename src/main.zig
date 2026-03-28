@@ -168,6 +168,7 @@ pub fn main() !void {
         {
             system.playerInputs(&ecs);
             system.playerMovement(&ecs);
+            system.playerDashInit(&ecs);
             system.playerWeaponControl(&ecs);
             system.setTargetToPlayer(&ecs);
             system.handleWeapons(
@@ -176,6 +177,8 @@ pub fn main() !void {
                 canvas_mouse_pos,
                 asset_atlas_projectile,
             );
+            system.updateDash(&ecs);
+            system.updateDashTrailGhost(&ecs);
             system.chaseEntity(&ecs);
             system.spinCosmetic(&ecs);
             system.spinCosmeticAccelScaled(&ecs);

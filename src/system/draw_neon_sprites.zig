@@ -63,19 +63,26 @@ pub fn drawNeonSprites(ecs: *ECS, shader: rl.Shader) void {
                 src,
             );
 
+            const tint_color = if (neon_sprite.tint_base) neon_sprite.color else rl.Color.init(
+                255,
+                255,
+                255,
+                neon_sprite.color.a,
+            );
+
             rl.drawTexturePro(
                 neon_sprite.atlas.texture,
                 src,
                 drawParams.dest,
                 drawParams.origin,
                 drawParams.final_rotation_deg,
-                rl.Color.white,
+                tint_color,
             );
         }
     }
 }
 
-fn textureSource(atlas: a.TextureAtlas, sprite_index: usize, retrieve_blur: bool) rl.Rectangle {
+fn textureSource(atlas: a.TextureAtlas, sprite_index: usize, use_blur: bool) rl.Rectangle {
     const cols_i32: i32 = @divFloor(atlas.texture.width, atlas.cell_width);
     const cols: usize = @as(usize, @intCast(cols_i32));
     const row: usize = sprite_index / cols;
@@ -87,7 +94,7 @@ fn textureSource(atlas: a.TextureAtlas, sprite_index: usize, retrieve_blur: bool
     const cell_height_f32: f32 = @floatFromInt(atlas.cell_height);
 
     var y: f32 = undefined;
-    if (retrieve_blur) {
+    if (use_blur) {
         y = row_f32 * 2.0 * cell_height_f32 + cell_height_f32;
     } else {
         y = row_f32 * 2.0 * cell_height_f32;
