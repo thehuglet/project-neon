@@ -28,9 +28,6 @@ pub const TargetedEntity = @import("targeted_entity.zig").TargetedEntity;
 pub const WeaponUseIntent = @import("weapon_use_intent.zig").WeaponUseIntent;
 pub const WeaponSlots = @import("weapon_slots.zig").WeaponSlots;
 
-// Debug
-pub const SpriteSwitcher = @import("sprite_switcher.zig").SpriteSwitcher;
-
 /// Components registered here will be available in the ECS.
 pub const Registry = [_]struct {
     component_type: type,
@@ -65,9 +62,6 @@ pub const Registry = [_]struct {
     .{ .component_type = ChaseEntity, .field_name = "chase_entity" },
     .{ .component_type = WeaponSlots, .field_name = "weapon_slots" },
     .{ .component_type = WeaponUseIntent, .field_name = "weapon_use_intent" },
-
-    // Debug
-    .{ .component_type = SpriteSwitcher, .field_name = "sprite_switcher" },
 };
 
 pub const CollisionLayer = struct {

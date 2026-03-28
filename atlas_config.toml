@@ -3,8 +3,8 @@ input = "assets/textures/atlases/cube_atlas.png"
 output = "assets/gen_textures/atlases/cube_atlas.png"
 cell_width = 96
 cell_height = 96
-blur_sigma = 4.0
-alpha_scale = 2.5
+blur_sigma = 3.5
+alpha_scale = 2.0
 
 [[atlas]]
 input = "assets/textures/atlases/roto_atlas.png"

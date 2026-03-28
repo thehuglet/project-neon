@@ -13,15 +13,16 @@ pub fn playerDashInit(ecs: *ECS) void {
         const player_input: *c.PlayerInput = item.get(c.PlayerInput).?;
 
         const is_dashing: bool = ecs.hasComponent(item.entity_id, c.Dashing);
+        const direction: rl.Vector2 = inputDirection(player_input);
 
-        if (player_input.dash and !is_dashing) {
+        if (player_input.dash and !is_dashing and direction.length() != 0.0) {
             ecs.addComponent(item.entity_id, c.Dashing{
                 .speed = 2000.0,
                 .remaining_distance = 200.0,
-                .direction = inputDirection(player_input),
+                .direction = direction,
                 .trail = .{
                     .ghost_spawner = .{
-                        .spawn_rate = 80.0,
+                        .spawn_rate = 150.0,
                     },
                 },
             });

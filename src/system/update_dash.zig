@@ -50,7 +50,7 @@ pub fn updateDash(ecs: *ECS) void {
 fn spawnTrailGhostEntity(ecs: *ECS, transform: c.Transform, neon_sprite: *c.NeonSprite) void {
     const entity_id: EntityId = ecs.assignEntityId();
 
-    const alpha_scale: f32 = 0.75;
+    const alpha_scale: f32 = 0.4;
     const alpha_scaled: u8 = @as(u8, @intFromFloat(@as(f32, @floatFromInt(neon_sprite.color.a)) * alpha_scale));
 
     const neon_sprite_new = c.NeonSprite{

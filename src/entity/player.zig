@@ -34,10 +34,9 @@ pub fn spawn(ecs: *ECS, atlas: a.TextureAtlas, pos: rl.Vector2) EntityId {
     });
     ecs.addComponent(entity_id, c.NeonSprite{
         .atlas = atlas,
-        .sprite_index = 0,
+        .sprite_index = 8,
         .color = rl.Color.init(100, 200, 255, 255),
     });
-    ecs.addComponent(entity_id, c.SpriteSwitcher{});
     ecs.addComponent(entity_id, c.Hurtbox{
         .radius = 30.0,
         .layer = c.CollisionLayer.player,
