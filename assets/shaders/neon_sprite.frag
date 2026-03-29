@@ -2,14 +2,19 @@
 
 in vec2 fragTexCoord;
 in vec4 fragColor;
-in vec3 fragNormal;
+in float hueShift;
+in float lightnessShift;
 
 uniform sampler2D texture0;
 uniform vec4 colDiffuse;
 
 out vec4 finalColor;
 
-vec3 fastHueShift(vec3 color, float shift) {
+vec3 shiftLightness(vec3 color, float shift) {
+    return color + (vec3(1.0) - color) * shift;
+}
+
+vec3 fastShiftHue(vec3 color, float shift) {
     float c = cos(shift);
     float s = sin(shift);
 
@@ -29,7 +34,10 @@ void main() {
     color *= fragColor * colDiffuse;
 
     // Hue shift
-    color.rgb = fastHueShift(color.rgb, fragNormal.x);
+    color.rgb = fastShiftHue(color.rgb, hueShift);
+
+    // Lightness scale
+    color.rgb = shiftLightness(color.rgb, lightnessShift);
 
     finalColor = color;
 }

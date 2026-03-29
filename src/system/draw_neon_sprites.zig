@@ -11,6 +11,7 @@ pub fn drawNeonSprites(ecs: *ECS, shader: rl.Shader) void {
     rl.beginBlendMode(rl.BlendMode.additive);
     defer rl.endBlendMode();
 
+    // Blur sprite drawing
     {
         rl.beginShaderMode(shader);
         defer rl.endShaderMode();
@@ -34,17 +35,19 @@ pub fn drawNeonSprites(ecs: *ECS, shader: rl.Shader) void {
                 src,
             );
 
-            drawTextureProWithNormal(
+            drawTextureNeonSprite(
                 neon_sprite.atlas.texture,
                 src,
                 draw_params.dest,
                 draw_params.origin,
                 draw_params.final_rotation_deg,
                 neon_sprite.color,
-                rl.Vector3.init(neon_sprite.hue_shift, 0.0, 0.0),
+                neon_sprite.hue_shift,
+                neon_sprite.lightness_shift,
             );
         }
     }
+    // Normal sprite drawing
     {
         var base_pass_query = ecs.query(.{
             c.Transform,
@@ -65,12 +68,12 @@ pub fn drawNeonSprites(ecs: *ECS, shader: rl.Shader) void {
                 src,
             );
 
-            const tint_color = if (neon_sprite.tint_base) neon_sprite.color else rl.Color.init(
-                255,
-                255,
-                255,
-                neon_sprite.color.a,
-            );
+            var tint_color: rl.Color = undefined;
+            if (neon_sprite.tint_base) {
+                tint_color = neon_sprite.color;
+            } else {
+                tint_color = rl.Color.init(255, 255, 255, neon_sprite.color.a);
+            }
 
             rl.drawTexturePro(
                 neon_sprite.atlas.texture,
@@ -110,7 +113,11 @@ fn textureSource(atlas: a.TextureAtlas, sprite_index: usize, use_blur: bool) rl.
     };
 }
 
-fn computeDrawParams(transform: *const c.Transform, neon_sprite: *const c.NeonSprite, src: rl.Rectangle) struct {
+fn computeDrawParams(
+    transform: *const c.Transform,
+    neon_sprite: *const c.NeonSprite,
+    src: rl.Rectangle,
+) struct {
     dest: rl.Rectangle,
     origin: rl.Vector2,
     final_rotation_deg: f32,
@@ -132,14 +139,15 @@ fn computeDrawParams(transform: *const c.Transform, neon_sprite: *const c.NeonSp
     };
 }
 
-pub fn drawTextureProWithNormal(
+pub fn drawTextureNeonSprite(
     texture: rl.Texture,
     src: rl.Rectangle,
     dest: rl.Rectangle,
     origin: rl.Vector2,
     rotation_deg: f32,
     tint: rl.Color,
-    normal: rl.Vector3,
+    hue_shift: f32,
+    lightness_shift: f32,
 ) void {
     const width: f32 = @floatFromInt(texture.width);
     const height: f32 = @floatFromInt(texture.height);
@@ -208,7 +216,7 @@ pub fn drawTextureProWithNormal(
     rl.gl.rlBegin(rl.gl.rl_quads);
 
     rl.gl.rlColor4ub(tint.r, tint.g, tint.b, tint.a);
-    rl.gl.rlNormal3f(normal.x, normal.y, normal.z);
+    rl.gl.rlNormal3f(hue_shift, lightness_shift, 0.0);
 
     // Top-left
     rl.gl.rlTexCoord2f(
