@@ -3,7 +3,9 @@ const rl = @import("raylib");
 const ECS = @import("ecs").ECS;
 const c = @import("component");
 const a = @import("asset");
+
 const math = @import("math");
+const helpers = @import("helpers");
 
 pub fn drawNeonSprites(ecs: *ECS, shader: rl.Shader) void {
     rl.beginBlendMode(rl.BlendMode.additive);
@@ -39,7 +41,7 @@ pub fn drawNeonSprites(ecs: *ECS, shader: rl.Shader) void {
                 draw_params.origin,
                 draw_params.final_rotation_deg,
                 neon_sprite.color,
-                rl.Vector3.init(0.0, 0.0, 0.0),
+                rl.Vector3.init(neon_sprite.hue_shift, 0.0, 0.0),
             );
         }
     }

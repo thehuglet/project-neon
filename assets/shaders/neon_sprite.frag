@@ -1,19 +1,35 @@
 #version 330
 
-// Input vertex attributes (from vertex shader)
 in vec2 fragTexCoord;
 in vec4 fragColor;
 in vec3 fragNormal;
 
-// Input uniform values
 uniform sampler2D texture0;
 uniform vec4 colDiffuse;
 
-// Output fragment color
 out vec4 finalColor;
 
-void main()
-{
-    vec4 texelColor = texture(texture0, fragTexCoord);
-    finalColor = texelColor * fragColor * colDiffuse;
+vec3 fastHueShift(vec3 color, float shift) {
+    float c = cos(shift);
+    float s = sin(shift);
+
+    mat3 rot = mat3(
+            c + (1.0 - c) / 3.0, (1.0 - c) / 3.0 - s / 1.73205, (1.0 - c) / 3.0 + s / 1.73205,
+            (1.0 - c) / 3.0 + s / 1.73205, c + (1.0 - c) / 3.0, (1.0 - c) / 3.0 - s / 1.73205,
+            (1.0 - c) / 3.0 - s / 1.73205, (1.0 - c) / 3.0 + s / 1.73205, c + (1.0 - c) / 3.0
+        );
+
+    return rot * color;
+}
+
+void main() {
+    vec4 color = texture(texture0, fragTexCoord);
+
+    // Tint
+    color *= fragColor * colDiffuse;
+
+    // Hue shift
+    color.rgb = fastHueShift(color.rgb, fragNormal.x);
+
+    finalColor = color;
 }
