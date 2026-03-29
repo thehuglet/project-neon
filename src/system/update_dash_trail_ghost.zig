@@ -21,10 +21,17 @@ pub fn updateDashTrailGhost(ecs: *ECS) void {
             ecs.deleteEntity(item.entity_id);
         }
 
-        // Alpha fading over lifetime
         const t: f32 = @min(ghost.remaining_lifetime_sec / ghost.initial_lifetime_sec, 1.0);
+
+        // Alpha fading
         const alpha: f32 = @as(f32, @floatFromInt(ghost.original_alpha)) * t;
         const clamped_alpha: f32 = @max(0.0, @min(alpha, 255.0));
         neon_sprite.color.a = @as(u8, @intFromFloat(clamped_alpha));
+
+        // Hue shifting
+        neon_sprite.hue_shift = ghost.hue_shift_over_lifetime * (1.0 - t);
+
+        // Scale
+        neon_sprite.scale = ghost.original_scale + (ghost.scale_over_lifetime - ghost.original_scale) * (1.0 - t);
     }
 }
