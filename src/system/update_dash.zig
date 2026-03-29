@@ -69,7 +69,7 @@ fn spawnTrailGhostEntity(ecs: *ECS, transform: c.Transform, neon_sprite: *c.Neon
         .remaining_lifetime_sec = lifetime_sec,
         .original_alpha = alpha_scaled,
         .original_scale = neon_sprite.scale,
-        .hue_shift_over_lifetime = 2.5,
+        .hue_shift_over_lifetime = 1.75,
         .scale_over_lifetime = 1.5,
     });
     ecs.addComponent(entity_id, transform);
