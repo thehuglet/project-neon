@@ -5,5 +5,7 @@ pub const RingOverT = struct {
     /// [0.0..1.0]
     max_radius_at_t: f32,
     /// [0.0..1.0]
-    fade_at_t: f32,
+    fade_in_at_t: f32,
+    /// [0.0..1.0]
+    fade_out_at_t: f32,
 };

@@ -177,6 +177,7 @@ pub fn main() !void {
             system.chaseEntity(&ecs);
             system.spinCosmetic(&ecs);
             system.updateDamageFlash(&ecs);
+            system.updateRingOverTLifetime(&ecs);
             system.spinCosmeticAccelScaled(&ecs);
             system.playerRotateFacingMouseCosmetic(&ecs, canvas_mouse_pos);
             system.handleCollisions(
@@ -198,17 +199,6 @@ pub fn main() !void {
                         _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(300, 1000));
                         _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(500, 600));
                     }
-                }
-
-                // Ring over T experiments
-                const speed = 4.0;
-                var query = ecs.query(.{
-                    component.RingOverT,
-                });
-                while (query.next()) |item| {
-                    const ring: *component.RingOverT = item.get(component.RingOverT).?;
-
-                    ring.t = (std.math.sin(game_time * speed) + 1.0) * 0.5;
                 }
             }
 

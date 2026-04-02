@@ -1,3 +1,5 @@
+const std = @import("std");
+
 const rl = @import("raylib");
 
 const ECS = @import("ecs").ECS;
@@ -16,16 +18,25 @@ pub fn drawRingOverT(ecs: *ECS) void {
 
         const t = ring.t;
 
-        const radius = t * ring.radius * (1.0 + ring.max_radius_at_t);
+        const radius: f32 = blk: {
+            if (t >= ring.max_radius_at_t) break :blk ring.radius;
 
-        const alpha: f32 = blk: {
-            if (t < ring.fade_at_t) break :blk 1.0;
-
-            const fade_t = (t - ring.fade_at_t) / (1.0 - ring.fade_at_t);
-            break :blk 1.0 - fade_t;
+            const progress = t / ring.max_radius_at_t;
+            break :blk ring.radius * std.math.pow(f32, progress, 1.0 / 3.0);
         };
 
-        const color = rl.Color.red.alpha(alpha);
+        const alpha: f32 = blk: {
+            if (t < ring.fade_in_at_t) {
+                break :blk t / ring.fade_in_at_t;
+            } else if (t < ring.fade_out_at_t) {
+                break :blk 1.0;
+            } else {
+                const fade_t = (t - ring.fade_out_at_t) / (1.0 - ring.fade_out_at_t);
+                break :blk 1.0 - fade_t;
+            }
+        };
+
+        const color = rl.Color.red.alpha(alpha / 3.0);
 
         rl.drawRing(
             transform.pos,
@@ -36,7 +47,5 @@ pub fn drawRingOverT(ecs: *ECS) void {
             64,
             color,
         );
-
-        // DrawRing(center, radius - thickness/2.0f, radius + thickness/2.0f, 0, 360, 64, RED);
     }
 }

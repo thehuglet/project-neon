@@ -18,6 +18,8 @@ pub fn spawn(
 ) EntityId {
     const entity_id = ecs.assignEntityId();
 
+    const lifetime_sec = 0.5;
+
     ecs.addComponent(entity_id, c.Owner{
         .entity_id = owner,
     });
@@ -33,7 +35,15 @@ pub fn spawn(
     });
     ecs.addComponent(entity_id, c.OneTickHitbox{});
     ecs.addComponent(entity_id, c.Lifetime{
-        .remaining_sec = 0.15,
+        .initial_sec = lifetime_sec,
+        .remaining_sec = lifetime_sec,
+    });
+    ecs.addComponent(entity_id, c.RingOverT{
+        .radius = radius,
+        .t = 0.0,
+        .max_radius_at_t = 0.3,
+        .fade_in_at_t = 0.2,
+        .fade_out_at_t = 0.3,
     });
 
     return entity_id;
