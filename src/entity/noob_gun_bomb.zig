@@ -33,22 +33,22 @@ pub fn spawn(
     ecs.addComponent(entity_id, c.Transform{
         .pos = pos,
         .rotation_rad = facing_angle * math.RAD_TO_DEG,
-        .scale = 1.0,
+        .scale = 2.5,
     });
     ecs.addComponent(entity_id, c.Motion{
         .mass = 10.0,
         .friction = 0.0,
         .ignores_drag = true,
-        .velocity = math.angleToVec2(facing_angle).scale(1400.0),
+        .velocity = math.angleToVec2(facing_angle).scale(1000.0),
     });
     ecs.addComponent(entity_id, c.NeonSprite{
         .atlas = atlas,
         .sprite_index = 0,
         .color = rl.Color.init(255, 100, 0, 255),
-        .scale = 1.5,
+        .scale = 1.0,
     });
     ecs.addComponent(entity_id, c.Hitbox{
-        .radius = 16.0,
+        .radius = 8.0,
         .mask = c.CollisionLayer.enemy,
         .damage = stats.projectile.explosion.damage,
     });

@@ -18,6 +18,7 @@ pub const SpinCosmetic = @import("spin_cosmetic.zig").SpinCosmetic;
 pub const SpinCosmeticAccelScaled = @import("spin_cosmetic_accel_scaled.zig").SpinCosmeticAccelScaled;
 pub const DashTrailGhost = @import("dash_trail_ghost.zig").DashTrailGhost;
 pub const DamageFlash = @import("damage_flash.zig").DamageFlash;
+pub const RingOverT = @import("ring_over_t.zig").RingOverT;
 
 // Other
 pub const PlayerInput = @import("player_input.zig").PlayerInput;
@@ -61,6 +62,7 @@ pub const Registry = [_]struct {
     .{ .component_type = SpinCosmeticAccelScaled, .field_name = "spin_cosmetic_accel_scaled" },
     .{ .component_type = DashTrailGhost, .field_name = "dash_trail_ghost" },
     .{ .component_type = DamageFlash, .field_name = "damage_flash" },
+    .{ .component_type = RingOverT, .field_name = "ring_over_t" },
 
     // Other
     .{ .component_type = PlayerInput, .field_name = "player_input" },

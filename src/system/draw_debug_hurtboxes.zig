@@ -12,16 +12,18 @@ pub fn drawDebugHurtboxes(ecs: *ECS) void {
         const hurtbox: *c.Hurtbox = item.get(c.Hurtbox).?;
         const transform: *c.Transform = item.get(c.Transform).?;
 
+        const radius: f32 = hurtbox.radius * transform.scale;
+
         rl.drawCircleLines(
             @intFromFloat(transform.pos.x),
             @intFromFloat(transform.pos.y),
-            hurtbox.radius,
+            radius,
             rl.Color.lime,
         );
         rl.drawCircle(
             @intFromFloat(transform.pos.x),
             @intFromFloat(transform.pos.y),
-            hurtbox.radius,
+            radius,
             rl.Color.lime.alpha(0.5),
         );
     }

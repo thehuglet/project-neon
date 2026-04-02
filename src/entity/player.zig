@@ -50,5 +50,12 @@ pub fn spawn(ecs: *ECS, atlas: a.TextureAtlas, pos: rl.Vector2) EntityId {
         .amount = 25.0,
     });
 
+    ecs.addComponent(entity_id, c.RingOverT{
+        .radius = 100.0,
+        .t = 0.0,
+        .max_radius_at_t = 0.5,
+        .fade_at_t = 0.9,
+    });
+
     return entity_id;
 }

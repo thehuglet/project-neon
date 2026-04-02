@@ -129,12 +129,6 @@ pub fn main() !void {
     // ------ Temp ------
     _ = entity.player.spawn(&ecs, asset_atlas_cube, .init(400, 400));
 
-    _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(1000, 600));
-    _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(400, 200));
-    _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(1300, 1000));
-    _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(300, 1000));
-    _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(500, 600));
-
     while (!rl.windowShouldClose()) {
         const game_time: f32 = @floatCast(rl.getTime());
         const screen_mouse_pos = rl.getMousePosition();
@@ -196,7 +190,7 @@ pub fn main() !void {
 
             // ------ DIRTY TESTING FACILITY ------
             {
-                for (0..10) |_| {
+                for (0..2) |_| {
                     if (rl.isKeyPressed(rl.KeyboardKey.v)) {
                         _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(1000, 600));
                         _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(400, 200));
@@ -204,6 +198,17 @@ pub fn main() !void {
                         _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(300, 1000));
                         _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(500, 600));
                     }
+                }
+
+                // Ring over T experiments
+                const speed = 4.0;
+                var query = ecs.query(.{
+                    component.RingOverT,
+                });
+                while (query.next()) |item| {
+                    const ring: *component.RingOverT = item.get(component.RingOverT).?;
+
+                    ring.t = (std.math.sin(game_time * speed) + 1.0) * 0.5;
                 }
             }
 
@@ -229,6 +234,7 @@ pub fn main() !void {
 
             system.drawNeonSprites(&ecs, asset_shader_neon_sprite);
             system.drawLumenBar(&ecs);
+            system.drawRingOverT(&ecs);
 
             // Debug drawing
             system.drawPlayerHealth(&ecs);

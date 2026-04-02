@@ -23,11 +23,12 @@ pub fn handleCollisions(
             c.Hurtbox,
         });
         while (query.next()) |item| {
-            const transform = item.get(c.Transform).?;
-            const hurtbox = item.get(c.Hurtbox).?;
+            const transform: *c.Transform = item.get(c.Transform).?;
+            const hurtbox: *c.Hurtbox = item.get(c.Hurtbox).?;
+
             hurt_ids.append(allocator, item.entity_id) catch @panic("OOM");
             hurt_positions.append(allocator, transform.pos) catch @panic("OOM");
-            hurt_radii.append(allocator, hurtbox.radius) catch @panic("OOM");
+            hurt_radii.append(allocator, hurtbox.radius * transform.scale) catch @panic("OOM");
             hurt_layers.append(allocator, hurtbox.layer) catch @panic("OOM");
         }
     }
@@ -39,7 +40,7 @@ pub fn handleCollisions(
             c.Hitbox,
         });
         while (query.next()) |item| {
-            const hit_transform: *c.Transform = item.get(c.Transform).?;
+            const transform: *c.Transform = item.get(c.Transform).?;
             const hitbox: *c.Hitbox = item.get(c.Hitbox).?;
 
             if (!hitbox.active) {
@@ -57,26 +58,26 @@ pub fn handleCollisions(
 
                 const hurt_center = hurt_positions.items[i];
                 const hurt_radius = hurt_radii.items[i];
-                const total_radius = hitbox.radius + hurt_radius;
+                const total_radius = hitbox.radius * transform.scale + hurt_radius;
 
                 const collides: bool = blk: {
                     const maybe_motion: ?*c.Motion = item.get(c.Motion);
 
                     if (maybe_motion) |motion| {
                         const future_pos = rl.math.vector2Add(
-                            hit_transform.pos,
+                            transform.pos,
                             rl.math.vector2Scale(motion.velocity, dt),
                         );
                         const collides: bool = circleLineSegmentCollision(
                             hurt_center,
                             total_radius,
-                            hit_transform.pos,
+                            transform.pos,
                             future_pos,
                         );
                         break :blk collides;
                     } else {
-                        const dx = hit_transform.pos.x - hurt_center.x;
-                        const dy = hit_transform.pos.y - hurt_center.y;
+                        const dx = transform.pos.x - hurt_center.x;
+                        const dy = transform.pos.y - hurt_center.y;
                         const collides: bool = (dx * dx + dy * dy) < total_radius * total_radius;
                         break :blk collides;
                     }
@@ -90,20 +91,6 @@ pub fn handleCollisions(
                         hitbox,
                     );
                 }
-
-                // if (circleLineSegmentCollision(
-                //     hurt_center,
-                //     total_radius,
-                //     hit_transform.pos,
-                //     future_pos,
-                // )) {
-                //     hit(
-                //         ecs,
-                //         hurt_ids.items[i],
-                //         item.entity_id,
-                //         hitbox,
-                //     );
-                // }
             }
         }
     }

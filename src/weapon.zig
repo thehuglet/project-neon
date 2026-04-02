@@ -32,6 +32,8 @@ const Projectile = union(enum) {
         radius: f32,
         lumen_gain: f32 = 0.0,
         // falloff: f32,
+        // /// [0.0..1.0]
+        // falloff_start: f32 = 0.8,
     },
 };
 
@@ -63,19 +65,19 @@ pub const STATS = std.EnumMap(WeaponId, WeaponStats).init(.{
             .projectile = Projectile{
                 .impact = .{
                     .damage = 40.0,
-                    .lumen_gain = 100.0,
+                    .lumen_gain = 2.0,
                 },
             },
         },
         .secondary = WeaponPartStats{
-            .trigger_mode = .auto,
+            .trigger_mode = .semi,
             .fire_rate = 4.0,
             .lumen_cost = 20.0,
             .projectile = Projectile{
                 .explosion = .{
-                    .damage = 1000.0,
+                    .damage = 100.0,
                     .lumen_gain = 0.0,
-                    .radius = 200.0,
+                    .radius = 120.0,
                 },
             },
         },
