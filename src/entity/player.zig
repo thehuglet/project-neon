@@ -45,6 +45,10 @@ pub fn spawn(ecs: *ECS, atlas: a.TextureAtlas, pos: rl.Vector2) EntityId {
         .max_lives = 3,
         .lives = 3,
     });
+    ecs.addComponent(entity_id, c.Lumen{
+        .max_amount = 100.0,
+        .amount = 25.0,
+    });
 
     return entity_id;
 }

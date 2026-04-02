@@ -2,6 +2,7 @@
 pub const Player = @import("player.zig").Player;
 pub const TargetsPlayer = @import("targets_player.zig").TargetsPlayer;
 pub const DespawnsWhenOOB = @import("despawns_when_oob.zig").DespawnsWhenOOB;
+pub const OneTickHitbox = @import("one_tick_hitbox.zig").OneTickHitbox;
 
 // Health
 pub const Health = @import("health.zig").Health;
@@ -16,6 +17,7 @@ pub const NeonSprite = @import("neon_sprite.zig").NeonSprite;
 pub const SpinCosmetic = @import("spin_cosmetic.zig").SpinCosmetic;
 pub const SpinCosmeticAccelScaled = @import("spin_cosmetic_accel_scaled.zig").SpinCosmeticAccelScaled;
 pub const DashTrailGhost = @import("dash_trail_ghost.zig").DashTrailGhost;
+pub const DamageFlash = @import("damage_flash.zig").DamageFlash;
 
 // Other
 pub const PlayerInput = @import("player_input.zig").PlayerInput;
@@ -27,6 +29,12 @@ pub const ChaseEntity = @import("chase_entity.zig").ChaseEntity;
 pub const TargetedEntity = @import("targeted_entity.zig").TargetedEntity;
 pub const WeaponUseIntent = @import("weapon_use_intent.zig").WeaponUseIntent;
 pub const WeaponSlots = @import("weapon_slots.zig").WeaponSlots;
+pub const Lumen = @import("lumen.zig").Lumen;
+pub const Owner = @import("owner.zig").Owner;
+pub const ProjectileWeaponsStats = @import("projectile_weapons_stats.zig").ProjectileWeaponsStats;
+pub const GeneratesLumen = @import("generates_lumen.zig").GeneratesLumen;
+pub const OnDeath = @import("on_death.zig").OnDeath;
+pub const Lifetime = @import("lifetime.zig").Lifetime;
 
 /// Components registered here will be available in the ECS.
 pub const Registry = [_]struct {
@@ -37,6 +45,7 @@ pub const Registry = [_]struct {
     .{ .component_type = Player, .field_name = "player" },
     .{ .component_type = TargetsPlayer, .field_name = "targets_player" },
     .{ .component_type = DespawnsWhenOOB, .field_name = "despawns_when_oob" },
+    .{ .component_type = OneTickHitbox, .field_name = "one_tick_hitbox" },
 
     // Health
     .{ .component_type = Health, .field_name = "health" },
@@ -51,6 +60,7 @@ pub const Registry = [_]struct {
     .{ .component_type = SpinCosmetic, .field_name = "spin_cosmetic" },
     .{ .component_type = SpinCosmeticAccelScaled, .field_name = "spin_cosmetic_accel_scaled" },
     .{ .component_type = DashTrailGhost, .field_name = "dash_trail_ghost" },
+    .{ .component_type = DamageFlash, .field_name = "damage_flash" },
 
     // Other
     .{ .component_type = PlayerInput, .field_name = "player_input" },
@@ -62,6 +72,12 @@ pub const Registry = [_]struct {
     .{ .component_type = ChaseEntity, .field_name = "chase_entity" },
     .{ .component_type = WeaponSlots, .field_name = "weapon_slots" },
     .{ .component_type = WeaponUseIntent, .field_name = "weapon_use_intent" },
+    .{ .component_type = Lumen, .field_name = "lumen" },
+    .{ .component_type = Owner, .field_name = "owner" },
+    .{ .component_type = ProjectileWeaponsStats, .field_name = "projectile_weapons_stats" },
+    .{ .component_type = GeneratesLumen, .field_name = "generates_lumen" },
+    .{ .component_type = OnDeath, .field_name = "on_death" },
+    .{ .component_type = Lifetime, .field_name = "lifetime" },
 };
 
 pub const CollisionLayer = struct {

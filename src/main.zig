@@ -20,6 +20,7 @@ const NATIVE_WIDTH_F32: f32 = @floatFromInt(NATIVE_WIDTH);
 const NATIVE_HEIGHT_F32: f32 = @floatFromInt(NATIVE_HEIGHT);
 
 pub fn main() !void {
+    // TODO: swap over to GPA
     const allocator = std.heap.page_allocator;
     const seed: u64 = @intCast(std.time.nanoTimestamp());
     var prng = std.Random.DefaultPrng.init(seed);
@@ -58,7 +59,7 @@ pub fn main() !void {
         .msaa_4x_hint = true,
     });
     rl.initWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Project Neon");
-    rl.setTargetFPS(144);
+    rl.setTargetFPS(0);
     defer rl.closeWindow();
 
     // ------ ECS ------
@@ -125,7 +126,6 @@ pub fn main() !void {
             .vec2,
         );
     }
-
     // ------ Temp ------
     _ = entity.player.spawn(&ecs, asset_atlas_cube, .init(400, 400));
 
@@ -179,8 +179,10 @@ pub fn main() !void {
             );
             system.updateDash(&ecs);
             system.updateDashTrailGhost(&ecs);
+            system.updateLifetime(&ecs);
             system.chaseEntity(&ecs);
             system.spinCosmetic(&ecs);
+            system.updateDamageFlash(&ecs);
             system.spinCosmeticAccelScaled(&ecs);
             system.playerRotateFacingMouseCosmetic(&ecs, canvas_mouse_pos);
             system.handleCollisions(
@@ -191,28 +193,18 @@ pub fn main() !void {
                 &temp.hurt_radii,
                 &temp.hurt_layers,
             );
-            system.despawnOOBEntities(
-                &ecs,
-                NATIVE_WIDTH_F32,
-                NATIVE_HEIGHT_F32,
-                100.0,
-            );
 
             // ------ DIRTY TESTING FACILITY ------
             {
-                // const math = @import("math");
-                // const pos = ecs.getComponent(player, component.Transform).?.pos;
-
-                // if (rl.isMouseButtonDown(rl.MouseButton.left)) {
-                //     const angle_offset = helpers.randomFloatRange(rng, -18.0, 18.0) * math.DEG_TO_RAD;
-
-                //     _ = entity.neon_blaster_bullet.spawn(
-                //         &ecs,
-                //         asset_atlas_cube,
-                //         pos,
-                //         math.vec2ToAngle(math.direction(pos, canvas_mouse_pos)) + angle_offset,
-                //     );
-                // }
+                for (0..10) |_| {
+                    if (rl.isKeyPressed(rl.KeyboardKey.v)) {
+                        _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(1000, 600));
+                        _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(400, 200));
+                        _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(1300, 1000));
+                        _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(300, 1000));
+                        _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(500, 600));
+                    }
+                }
             }
 
             // Physics end frame calculations
@@ -236,6 +228,7 @@ pub fn main() !void {
             rl.endShaderMode();
 
             system.drawNeonSprites(&ecs, asset_shader_neon_sprite);
+            system.drawLumenBar(&ecs);
 
             // Debug drawing
             system.drawPlayerHealth(&ecs);
@@ -247,6 +240,20 @@ pub fn main() !void {
             if (debug_settings.show_hitboxes) {
                 system.drawDebugHitboxes(&ecs);
             }
+        }
+
+        // ------ Post-drawing logic ------
+        {
+            system.oneTickHitbox(&ecs);
+            system.zeroHealthDeath(&ecs, rng);
+            system.despawnOOBEntities(
+                &ecs,
+                NATIVE_WIDTH_F32,
+                NATIVE_HEIGHT_F32,
+                100.0,
+            );
+            system.lifetimeDespawn(&ecs);
+            system.onDeath(&ecs);
         }
 
         // ------ Drawing canvas to screen ------

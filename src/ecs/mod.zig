@@ -296,7 +296,10 @@ pub const ECS = struct {
     }
 
     pub fn entityIsAlive(self: *ECS, entity_id: EntityId) bool {
-        return self.entity_id_pool.isAlive(entity_id);
+        const alive_in_pool: bool = self.entity_id_pool.isAlive(entity_id);
+        const not_in_morgue: bool = !self.entity_index_morgue.isSet(entity_id.index);
+
+        return alive_in_pool and not_in_morgue;
     }
 
     pub fn flush(self: *ECS) void {

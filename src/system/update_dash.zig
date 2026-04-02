@@ -50,14 +50,12 @@ pub fn updateDash(ecs: *ECS) void {
 fn spawnTrailGhostEntity(ecs: *ECS, transform: c.Transform, neon_sprite: *c.NeonSprite) void {
     const entity_id: EntityId = ecs.assignEntityId();
 
-    const alpha_scale: f32 = 0.2;
-    const alpha_scaled: u8 = @as(u8, @intFromFloat(@as(f32, @floatFromInt(neon_sprite.color.a)) * alpha_scale));
     const lifetime_sec: f32 = 0.1;
 
     const neon_sprite_new = c.NeonSprite{
         .atlas = neon_sprite.atlas,
         .sprite_index = neon_sprite.sprite_index,
-        .color = neon_sprite.color,
+        .color = neon_sprite.color.alpha(0.4),
         .rotation_rad = neon_sprite.rotation_rad,
         .scale = neon_sprite.scale,
         .origin = neon_sprite.origin,
@@ -65,10 +63,8 @@ fn spawnTrailGhostEntity(ecs: *ECS, transform: c.Transform, neon_sprite: *c.Neon
     };
 
     ecs.addComponent(entity_id, c.DashTrailGhost{
-        .initial_lifetime_sec = lifetime_sec,
+        .lifetime_sec = lifetime_sec,
         .remaining_lifetime_sec = lifetime_sec,
-        .original_alpha = alpha_scaled,
-        .original_scale = neon_sprite.scale,
         .hue_shift_over_lifetime = 1.75,
         .scale_over_lifetime = 1.5,
     });

@@ -7,8 +7,10 @@ const EntityId = @import("ecs").EntityId;
 const c = @import("component");
 
 pub fn setTargetToPlayer(ecs: *ECS) void {
-    var player_query = ecs.query(.{c.Player});
-    const player_item = player_query.next() orelse return;
+    var query = ecs.query(.{
+        c.Player,
+    });
+    const player_item = query.next() orelse return;
     const player_entity_id = player_item.entity_id;
 
     var targetting_entity_query = ecs.query(.{

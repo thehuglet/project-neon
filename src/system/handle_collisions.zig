@@ -17,62 +17,161 @@ pub fn handleCollisions(
     const dt: f32 = rl.getFrameTime();
 
     // Collect hurtboxes
-    var hurt_query = ecs.query(.{
-        c.Transform,
-        c.Hurtbox,
-    });
-    while (hurt_query.next()) |hurt_item| {
-        const transform = hurt_item.get(c.Transform).?;
-        const hurtbox = hurt_item.get(c.Hurtbox).?;
-        hurt_ids.append(allocator, hurt_item.entity_id) catch @panic("OOM");
-        hurt_positions.append(allocator, transform.pos) catch @panic("OOM");
-        hurt_radii.append(allocator, hurtbox.radius) catch @panic("OOM");
-        hurt_layers.append(allocator, hurtbox.layer) catch @panic("OOM");
+    {
+        var query = ecs.query(.{
+            c.Transform,
+            c.Hurtbox,
+        });
+        while (query.next()) |item| {
+            const transform = item.get(c.Transform).?;
+            const hurtbox = item.get(c.Hurtbox).?;
+            hurt_ids.append(allocator, item.entity_id) catch @panic("OOM");
+            hurt_positions.append(allocator, transform.pos) catch @panic("OOM");
+            hurt_radii.append(allocator, hurtbox.radius) catch @panic("OOM");
+            hurt_layers.append(allocator, hurtbox.layer) catch @panic("OOM");
+        }
     }
 
     // Compare against hitboxes
-    var hit_query = ecs.query(.{
-        c.Transform,
-        c.Hitbox,
-        c.Motion,
-    });
-    while (hit_query.next()) |hit_item| {
-        const hit_transform = hit_item.get(c.Transform).?;
-        const hitbox = hit_item.get(c.Hitbox).?;
-        const motion = hit_item.get(c.Motion).?;
+    {
+        var query = ecs.query(.{
+            c.Transform,
+            c.Hitbox,
+        });
+        while (query.next()) |item| {
+            const hit_transform: *c.Transform = item.get(c.Transform).?;
+            const hitbox: *c.Hitbox = item.get(c.Hitbox).?;
 
-        const future_pos = rl.math.vector2Add(
-            hit_transform.pos,
-            rl.math.vector2Scale(motion.velocity, dt),
-        );
+            if (!hitbox.active) {
+                continue;
+            }
 
-        for (0..hurt_ids.items.len) |i| {
-            if (hit_item.entity_id == hurt_ids.items[i]) continue;
-            if ((hitbox.mask & hurt_layers.items[i]) == 0) continue;
+            for (0..hurt_ids.items.len) |i| {
+                const tried_hitting_self: bool = item.entity_id == hurt_ids.items[i];
+                const collision_layer_mismatch: bool = (hitbox.mask & hurt_layers.items[i]) == 0;
+                const attacker_is_dead: bool = !ecs.entityIsAlive(item.entity_id);
 
-            const hurt_center = hurt_positions.items[i];
-            const hurt_radius = hurt_radii.items[i];
-            const total_radius = hitbox.radius + hurt_radius;
+                if (tried_hitting_self or collision_layer_mismatch or attacker_is_dead) {
+                    continue;
+                }
 
-            // Swept test: line segment from current pos to future pos
-            if (circleLineSegmentCollision(
-                hurt_center,
-                total_radius,
-                hit_transform.pos,
-                future_pos,
-            )) {
-                hit(ecs, hurt_ids.items[i], hit_item.entity_id);
+                const hurt_center = hurt_positions.items[i];
+                const hurt_radius = hurt_radii.items[i];
+                const total_radius = hitbox.radius + hurt_radius;
+
+                const collides: bool = blk: {
+                    const maybe_motion: ?*c.Motion = item.get(c.Motion);
+
+                    if (maybe_motion) |motion| {
+                        const future_pos = rl.math.vector2Add(
+                            hit_transform.pos,
+                            rl.math.vector2Scale(motion.velocity, dt),
+                        );
+                        const collides: bool = circleLineSegmentCollision(
+                            hurt_center,
+                            total_radius,
+                            hit_transform.pos,
+                            future_pos,
+                        );
+                        break :blk collides;
+                    } else {
+                        const dx = hit_transform.pos.x - hurt_center.x;
+                        const dy = hit_transform.pos.y - hurt_center.y;
+                        const collides: bool = (dx * dx + dy * dy) < total_radius * total_radius;
+                        break :blk collides;
+                    }
+                };
+
+                if (collides) {
+                    hit(
+                        ecs,
+                        hurt_ids.items[i],
+                        item.entity_id,
+                        hitbox,
+                    );
+                }
+
+                // if (circleLineSegmentCollision(
+                //     hurt_center,
+                //     total_radius,
+                //     hit_transform.pos,
+                //     future_pos,
+                // )) {
+                //     hit(
+                //         ecs,
+                //         hurt_ids.items[i],
+                //         item.entity_id,
+                //         hitbox,
+                //     );
+                // }
             }
         }
     }
 }
 
-fn hit(ecs: *ECS, receiver: EntityId, attacker: EntityId) void {
-    if (ecs.getComponent(receiver, c.HealthLives)) |health| {
-        health.lives -|= 1;
+fn hit(ecs: *ECS, receiver: EntityId, attacker: EntityId, hitbox: *c.Hitbox) void {
+    dmg_application: {
+        const receiver_health: *c.Health = ecs.getComponent(receiver, c.Health) orelse {
+            break :dmg_application;
+        };
+
+        receiver_health.health -= hitbox.damage;
     }
 
-    ecs.deleteEntity(attacker);
+    // Dmg flash
+    {
+        const duration = 0.15;
+        const maybe_existing_dmg_flash: ?*c.DamageFlash = ecs.getComponent(receiver, c.DamageFlash);
+
+        if (maybe_existing_dmg_flash) |existing_dmg_flash| {
+            existing_dmg_flash.remaining_duration_sec = duration;
+        } else {
+            ecs.addComponent(receiver, c.DamageFlash{
+                .duration_sec = duration,
+                .remaining_duration_sec = duration,
+                .peak_lightness_shift = 3.0,
+                .peak_alpha_scale = 1.3,
+            });
+        }
+    }
+
+    owner_lumen_generation: {
+        // Attacker needs to have an owner
+        const owner: *c.Owner = ecs.getComponent(attacker, c.Owner) orelse {
+            break :owner_lumen_generation;
+        };
+
+        // Owner needs to have a lumen component
+        const lumen: *c.Lumen = ecs.getComponent(owner.entity_id, c.Lumen) orelse {
+            break :owner_lumen_generation;
+        };
+
+        // Attacker needs to be able to generate lumen
+        const generates_lumen: *c.GeneratesLumen = ecs.getComponent(attacker, c.GeneratesLumen) orelse {
+            break :owner_lumen_generation;
+        };
+
+        lumen.amount = std.math.clamp(
+            lumen.amount + generates_lumen.amount,
+            0.0,
+            lumen.max_amount,
+        );
+    }
+
+    impact_piercing: {
+        const stats: *c.ProjectileWeaponsStats = ecs.getComponent(attacker, c.ProjectileWeaponsStats) orelse {
+            break :impact_piercing;
+        };
+
+        // TODO: this is temporary, piercing currently doesnt get decreased, fix this
+        if (stats.stats.projectile == .impact and stats.stats.projectile.impact.piercing == 1) {
+            ecs.deleteEntity(attacker);
+        }
+
+        if (stats.stats.projectile == .explosion) {
+            ecs.deleteEntity(attacker);
+        }
+    }
 }
 
 fn circleLineSegmentCollision(

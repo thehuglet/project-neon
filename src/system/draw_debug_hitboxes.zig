@@ -12,17 +12,19 @@ pub fn drawDebugHitboxes(ecs: *ECS) void {
         const hitbox: *c.Hitbox = item.get(c.Hitbox).?;
         const transform: *c.Transform = item.get(c.Transform).?;
 
+        const color: rl.Color = if (hitbox.active) rl.Color.red else rl.Color.init(100, 80, 80, 255);
+
         rl.drawCircleLines(
             @intFromFloat(transform.pos.x),
             @intFromFloat(transform.pos.y),
             hitbox.radius,
-            rl.Color.red,
+            color,
         );
         rl.drawCircle(
             @intFromFloat(transform.pos.x),
             @intFromFloat(transform.pos.y),
             hitbox.radius,
-            rl.Color.red.alpha(0.5),
+            color.alpha(0.5),
         );
     }
 }

@@ -4,6 +4,7 @@ in vec2 fragTexCoord;
 in vec4 fragColor;
 in float hueShift;
 in float lightnessShift;
+in float alphaScale;
 
 uniform sampler2D texture0;
 uniform vec4 colDiffuse;
@@ -36,8 +37,11 @@ void main() {
     // Hue shift
     color.rgb = fastShiftHue(color.rgb, hueShift);
 
-    // Lightness scale
+    // Lightness shift
     color.rgb = shiftLightness(color.rgb, lightnessShift);
+
+    // Alpha boost
+    color.a *= alphaScale;
 
     finalColor = color;
 }

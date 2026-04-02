@@ -8,8 +8,6 @@ pub const NeonSprite = struct {
     color: rl.Color,
     rotation_rad: f32 = 0.0,
     scale: f32 = 1.0,
-    hue_shift: f32 = 0.0,
-    lightness_shift: f32 = 0.0,
     origin: ?rl.Vector2 = null,
     tint_base: bool = false,
 };

@@ -11,6 +11,7 @@ out vec2 fragTexCoord;
 out vec4 fragColor;
 out float hueShift;
 out float lightnessShift;
+out float alphaScale;
 
 void main() {
     fragTexCoord = vertexTexCoord;
@@ -20,6 +21,7 @@ void main() {
     // they are unused by raylib
     hueShift = vertexNormal.x;
     lightnessShift = vertexNormal.y;
+    alphaScale = vertexNormal.z;
 
     gl_Position = mvp * vec4(vertexPosition, 1.0);
 }

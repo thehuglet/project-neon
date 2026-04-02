@@ -5,11 +5,26 @@ const EntityId = @import("ecs").EntityId;
 const c = @import("component");
 const a = @import("asset");
 
+const weapon = @import("weapon");
 const math = @import("math");
 
-pub fn spawn(ecs: *ECS, atlas: a.TextureAtlas, pos: rl.Vector2, facing_angle: f32) EntityId {
+pub fn spawn(
+    ecs: *ECS,
+    owner: EntityId,
+    stats: weapon.WeaponPartStats,
+    atlas: a.TextureAtlas,
+    pos: rl.Vector2,
+    facing_angle: f32,
+) EntityId {
+    if (stats.projectile != .impact) {
+        unreachable;
+    }
+
     const entity_id = ecs.assignEntityId();
 
+    ecs.addComponent(entity_id, c.ProjectileWeaponsStats{
+        .stats = stats,
+    });
     ecs.addComponent(entity_id, c.DespawnsWhenOOB{});
     ecs.addComponent(entity_id, c.Transform{
         .pos = pos,
@@ -31,10 +46,17 @@ pub fn spawn(ecs: *ECS, atlas: a.TextureAtlas, pos: rl.Vector2, facing_angle: f3
     ecs.addComponent(entity_id, c.Hitbox{
         .radius = 16.0,
         .mask = c.CollisionLayer.enemy,
+        .damage = stats.projectile.impact.damage,
     });
     ecs.addComponent(entity_id, c.SpinCosmetic{
         .clockwise = true,
         .speed = 60.0,
+    });
+    ecs.addComponent(entity_id, c.Owner{
+        .entity_id = owner,
+    });
+    ecs.addComponent(entity_id, c.GeneratesLumen{
+        .amount = stats.projectile.impact.lumen_gain,
     });
 
     return entity_id;

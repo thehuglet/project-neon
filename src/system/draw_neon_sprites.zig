@@ -1,3 +1,5 @@
+const std = @import("std");
+
 const rl = @import("raylib");
 
 const ECS = @import("ecs").ECS;
@@ -24,6 +26,23 @@ pub fn drawNeonSprites(ecs: *ECS, shader: rl.Shader) void {
             const transform: *c.Transform = item.get(c.Transform).?;
             const neon_sprite: *c.NeonSprite = item.get(c.NeonSprite).?;
 
+            var alpha: f32 = @as(f32, @floatFromInt(neon_sprite.color.a)) / 255.0;
+            var alpha_scale: f32 = 1.0;
+            var scale: f32 = neon_sprite.scale;
+            var hue_shift: f32 = 0.0;
+            var lightness_shift: f32 = 0.0;
+
+            if (ecs.getComponent(item.entity_id, c.DashTrailGhost)) |ghost| {
+                alpha *= ghost.current_alpha_scale;
+                scale *= ghost.current_scale;
+                hue_shift += ghost.current_hue_shift;
+            }
+
+            if (ecs.getComponent(item.entity_id, c.DamageFlash)) |dmg_flash| {
+                lightness_shift += dmg_flash.current_lightness_shift;
+                alpha_scale *= dmg_flash.current_alpha_scale;
+            }
+
             const src: rl.Rectangle = textureSource(
                 neon_sprite.atlas,
                 neon_sprite.sprite_index,
@@ -33,6 +52,7 @@ pub fn drawNeonSprites(ecs: *ECS, shader: rl.Shader) void {
                 transform,
                 neon_sprite,
                 src,
+                scale,
             );
 
             drawTextureNeonSprite(
@@ -41,9 +61,10 @@ pub fn drawNeonSprites(ecs: *ECS, shader: rl.Shader) void {
                 draw_params.dest,
                 draw_params.origin,
                 draw_params.final_rotation_deg,
-                neon_sprite.color,
-                neon_sprite.hue_shift,
-                neon_sprite.lightness_shift,
+                neon_sprite.color.alpha(alpha),
+                hue_shift,
+                lightness_shift,
+                alpha_scale,
             );
         }
     }
@@ -57,30 +78,43 @@ pub fn drawNeonSprites(ecs: *ECS, shader: rl.Shader) void {
             const transform: *c.Transform = item.get(c.Transform).?;
             const neon_sprite: *c.NeonSprite = item.get(c.NeonSprite).?;
 
+            var alpha: f32 = @as(f32, @floatFromInt(neon_sprite.color.a)) / 255.0;
+            var scale: f32 = neon_sprite.scale;
+            // var hue_shift: f32 = 0.0;
+
+            if (ecs.getComponent(item.entity_id, c.DashTrailGhost)) |ghost| {
+                alpha *= ghost.current_alpha_scale;
+                scale *= ghost.current_scale;
+                // hue_shift += ghost.current_hue_shift;
+            }
+
             const src: rl.Rectangle = textureSource(
                 neon_sprite.atlas,
                 neon_sprite.sprite_index,
                 false,
             );
-            const drawParams = computeDrawParams(
+            const draw_params = computeDrawParams(
                 transform,
                 neon_sprite,
                 src,
+                scale,
             );
 
             var tint_color: rl.Color = undefined;
             if (neon_sprite.tint_base) {
-                tint_color = neon_sprite.color;
+                tint_color = neon_sprite.color.alpha(alpha);
             } else {
-                tint_color = rl.Color.init(255, 255, 255, neon_sprite.color.a);
+                tint_color = rl.Color.init(255, 255, 255, @intFromFloat(
+                    std.math.clamp(alpha * 255.0, 0.0, 255.0),
+                ));
             }
 
             rl.drawTexturePro(
                 neon_sprite.atlas.texture,
                 src,
-                drawParams.dest,
-                drawParams.origin,
-                drawParams.final_rotation_deg,
+                draw_params.dest,
+                draw_params.origin,
+                draw_params.final_rotation_deg,
                 tint_color,
             );
         }
@@ -117,13 +151,14 @@ fn computeDrawParams(
     transform: *const c.Transform,
     neon_sprite: *const c.NeonSprite,
     src: rl.Rectangle,
+    scale: f32,
 ) struct {
     dest: rl.Rectangle,
     origin: rl.Vector2,
     final_rotation_deg: f32,
 } {
-    const dest_width: f32 = src.width * neon_sprite.scale * transform.scale;
-    const dest_height: f32 = src.height * neon_sprite.scale * transform.scale;
+    const dest_width: f32 = src.width * transform.scale * scale;
+    const dest_height: f32 = src.height * transform.scale * scale;
     const origin: rl.Vector2 = neon_sprite.origin orelse .{ .x = dest_width / 2, .y = dest_height / 2 };
     const dest: rl.Rectangle = rl.Rectangle{
         .x = transform.pos.x,
@@ -139,7 +174,7 @@ fn computeDrawParams(
     };
 }
 
-pub fn drawTextureNeonSprite(
+fn drawTextureNeonSprite(
     texture: rl.Texture,
     src: rl.Rectangle,
     dest: rl.Rectangle,
@@ -148,6 +183,7 @@ pub fn drawTextureNeonSprite(
     tint: rl.Color,
     hue_shift: f32,
     lightness_shift: f32,
+    alpha_scale: f32,
 ) void {
     const width: f32 = @floatFromInt(texture.width);
     const height: f32 = @floatFromInt(texture.height);
@@ -216,7 +252,7 @@ pub fn drawTextureNeonSprite(
     rl.gl.rlBegin(rl.gl.rl_quads);
 
     rl.gl.rlColor4ub(tint.r, tint.g, tint.b, tint.a);
-    rl.gl.rlNormal3f(hue_shift, lightness_shift, 0.0);
+    rl.gl.rlNormal3f(hue_shift, lightness_shift, alpha_scale);
 
     // Top-left
     rl.gl.rlTexCoord2f(
