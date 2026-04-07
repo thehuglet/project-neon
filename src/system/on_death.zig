@@ -1,9 +1,11 @@
+const std = @import("std");
+
 const rl = @import("raylib");
 
 const ECS = @import("ecs").ECS;
 const c = @import("component");
 
-pub fn onDeath(ecs: *ECS) void {
+pub fn onDeath(ecs: *ECS, rng: std.Random) void {
     var query = ecs.query(.{
         c.OnDeath,
     });
@@ -14,6 +16,6 @@ pub fn onDeath(ecs: *ECS) void {
             continue;
         }
 
-        on_death.callback(ecs, item.entity_id, on_death.data);
+        on_death.callback(ecs, rng, item.entity_id, on_death.data);
     }
 }

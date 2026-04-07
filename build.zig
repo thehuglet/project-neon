@@ -49,6 +49,7 @@ pub fn build(b: *std.Build) void {
         .{ .name = "component", .path = "src/component/mod.zig" },
         .{ .name = "system", .path = "src/system/mod.zig" },
         .{ .name = "ecs", .path = "src/ecs/mod.zig" },
+        .{ .name = "context", .path = "src/context.zig" },
     };
 
     for (included_modules) |info| {

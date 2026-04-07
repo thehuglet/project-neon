@@ -1,18 +1,19 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const rl = @import("raylib");
-
 const ECS = @import("ecs").ECS;
 const EntityId = @import("ecs").EntityId;
+const Context = @import("context").Context;
+const TextureAtlas = @import("context").TextureAtlas;
 const entity = @import("entity");
 const component = @import("component");
 const system = @import("system");
 const asset = @import("asset");
 const helpers = @import("helpers");
-
 const debug = @import("debug.zig");
 
-const WINDOW_WIDTH = 1600;
-const WINDOW_HEIGHT = 900;
+const WINDOW_WIDTH = 1280;
+const WINDOW_HEIGHT = 720;
 
 const NATIVE_WIDTH = 1920;
 const NATIVE_HEIGHT = 1090;
@@ -20,32 +21,55 @@ const NATIVE_WIDTH_F32: f32 = @floatFromInt(NATIVE_WIDTH);
 const NATIVE_HEIGHT_F32: f32 = @floatFromInt(NATIVE_HEIGHT);
 
 pub fn main() !void {
-    // TODO: swap over to GPA
-    const allocator = std.heap.page_allocator;
-    const seed: u64 = @intCast(std.time.nanoTimestamp());
-    var prng = std.Random.DefaultPrng.init(seed);
-    const rng = prng.random();
+    const gpa = std.heap.GeneralPurposeAllocator(.{
+        .safety = builtin.mode == .Debug,
+    }){};
+    const allocator = gpa.allocator();
 
-    // Temporary storage to avoid allocations
-    var temp = struct {
-        hurt_ids: std.ArrayList(EntityId) = .empty,
-        hurt_positions: std.ArrayList(rl.Vector2) = .empty,
-        hurt_radii: std.ArrayList(f32) = .empty,
-        hurt_layers: std.ArrayList(u32) = .empty,
+    var ctx = Context{
+        .allocator = allocator,
+        .rng = blk: {
+            const seed: u64 = @intCast(std.time.nanoTimestamp());
+            var prng = std.Random.DefaultPrng.init(seed);
+            break :blk prng.random();
+        },
+        .atlases = .init(allocator),
+    };
 
-        pub fn clear(self: *@This()) void {
-            self.hurt_ids.clearRetainingCapacity();
-            self.hurt_positions.clearRetainingCapacity();
-            self.hurt_radii.clearRetainingCapacity();
-            self.hurt_layers.clearRetainingCapacity();
-        }
-    }{};
-    defer {
-        temp.hurt_ids.deinit(allocator);
-        temp.hurt_positions.deinit(allocator);
-        temp.hurt_radii.deinit(allocator);
-        temp.hurt_layers.deinit(allocator);
-    }
+    // Init atlases
+    try {
+        ctx.atlases.put("cube", TextureAtlas.init(
+            "assets/gen_textures/atlases/cube_atlas.png",
+            96,
+            96,
+        ));
+        ctx.atlases.put("roto", TextureAtlas.init(
+            "assets/gen_textures/atlases/roto_atlas.png",
+            96,
+            96,
+        ));
+    };
+
+    // // Temporary storage to avoid allocations
+    // var temp = struct {
+    //     hurt_ids: std.ArrayList(EntityId) = .empty,
+    //     hurt_positions: std.ArrayList(rl.Vector2) = .empty,
+    //     hurt_radii: std.ArrayList(f32) = .empty,
+    //     hurt_layers: std.ArrayList(u32) = .empty,
+
+    //     pub fn clear(self: *@This()) void {
+    //         self.hurt_ids.clearRetainingCapacity();
+    //         self.hurt_positions.clearRetainingCapacity();
+    //         self.hurt_radii.clearRetainingCapacity();
+    //         self.hurt_layers.clearRetainingCapacity();
+    //     }
+    // }{};
+    // defer {
+    //     temp.hurt_ids.deinit(allocator);
+    //     temp.hurt_positions.deinit(allocator);
+    //     temp.hurt_radii.deinit(allocator);
+    //     temp.hurt_layers.deinit(allocator);
+    // }
 
     // ------ Debug options ------
     var debug_settings = debug.DebugSettings{
@@ -56,10 +80,10 @@ pub fn main() !void {
     // ------ Raylib init ------
     rl.setConfigFlags(rl.ConfigFlags{
         .window_resizable = true,
-        .msaa_4x_hint = true,
+        .msaa_4x_hint = false,
     });
     rl.initWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Project Neon");
-    rl.setTargetFPS(0);
+    rl.setTargetFPS(120);
     defer rl.closeWindow();
 
     // ------ ECS ------
@@ -212,7 +236,7 @@ pub fn main() !void {
             rl.beginTextureMode(canvas);
             defer rl.endTextureMode();
 
-            rl.beginShaderMode(asset_shader_bg_starfield);
+            // rl.beginShaderMode(asset_shader_bg_starfield);
             rl.drawRectangle(
                 0,
                 0,
@@ -220,7 +244,7 @@ pub fn main() !void {
                 NATIVE_HEIGHT,
                 rl.Color.black,
             );
-            rl.endShaderMode();
+            // rl.endShaderMode();
 
             system.drawNeonSprites(&ecs, asset_shader_neon_sprite);
             system.drawLumenBar(&ecs);
@@ -249,7 +273,7 @@ pub fn main() !void {
                 100.0,
             );
             system.lifetimeDespawn(&ecs);
-            system.onDeath(&ecs);
+            system.onDeath(&ecs, rng);
         }
 
         // ------ Drawing canvas to screen ------

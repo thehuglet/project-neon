@@ -1,3 +1,5 @@
+const std = @import("std");
+
 const ECS = @import("ecs").ECS;
 const EntityId = @import("ecs").EntityId;
 
@@ -12,6 +14,7 @@ pub const OnDeath = struct {
 
     const Callback = *const fn (
         ecs: *ECS,
+        rng: std.Random,
         entity_id: EntityId,
         data: Data,
     ) void;
