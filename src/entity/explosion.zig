@@ -2,6 +2,8 @@ const rl = @import("raylib");
 
 const ECS = @import("ecs").ECS;
 const EntityId = @import("ecs").EntityId;
+const CollisionLayer = @import("context").CollisionLayer;
+
 const c = @import("component");
 const a = @import("asset");
 
@@ -14,7 +16,7 @@ pub fn spawn(
     owner: EntityId,
     damage: f32,
     radius: f32,
-    collision_mask: u32,
+    collision_mask: CollisionLayer,
 ) EntityId {
     const entity_id = ecs.assignEntityId();
 

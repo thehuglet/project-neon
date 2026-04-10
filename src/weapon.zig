@@ -4,10 +4,10 @@ const rl = @import("raylib");
 
 const ECS = @import("ecs").ECS;
 const EntityId = @import("ecs").EntityId;
+const TextureAtlas = @import("context").TextureAtlas;
 
 const e = @import("entity");
 const c = @import("component");
-const a = @import("asset");
 
 const math = @import("math");
 const helpers = @import("helpers");
@@ -94,7 +94,7 @@ pub fn usePrimary(
     ecs: *ECS,
     rng: std.Random,
     weapon_id: WeaponId,
-    projectile_atlas: a.TextureAtlas,
+    projectile_atlas: TextureAtlas,
     entity: EntityId,
     entity_transform: *c.Transform,
     mouse_pos: rl.Vector2,
@@ -135,7 +135,7 @@ pub fn useSecondary(
     ecs: *ECS,
     rng: std.Random,
     weapon_id: WeaponId,
-    projectile_atlas: a.TextureAtlas,
+    projectile_atlas: TextureAtlas,
     entity: EntityId,
     entity_transform: *c.Transform,
     mouse_pos: rl.Vector2,

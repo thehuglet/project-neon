@@ -1,13 +1,14 @@
 const rl = @import("raylib");
 
+const Context = @import("context").Context;
 const ECS = @import("ecs").ECS;
 const c = @import("component");
 const math = @import("math");
 
-pub fn playerRotateFacingMouseCosmetic(ecs: *ECS, mouse_pos: rl.Vector2) void {
+pub fn playerRotateFacingMouseCosmetic(ctx: *Context) void {
     const delta_time: f32 = rl.getFrameTime();
 
-    var query = ecs.query(.{
+    var query = ctx.ecs.query(.{
         c.Player,
         c.Transform,
         c.NeonSprite,
@@ -18,7 +19,7 @@ pub fn playerRotateFacingMouseCosmetic(ecs: *ECS, mouse_pos: rl.Vector2) void {
 
         const dir_to_mouse = math.direction(
             transform.pos,
-            mouse_pos,
+            ctx.mouse_pos,
         );
 
         const target_angle_rad: f32 = math.vec2ToAngle(dir_to_mouse);

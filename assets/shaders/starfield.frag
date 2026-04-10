@@ -53,14 +53,10 @@ vec3 starfield(vec2 samplePosition, float threshold) {
     power = power * power * power;
 
     // ----- TWINKLING -----
-    // which star cell we're in
     vec2 cell = floor(samplePosition);
-    // deterministic per‑star random
     vec2 seed = hash22(cell);
-    float speed = 1.0 + seed.x * 2.0;
-    // random phase in [0, 2π]
+    float speed = 1.0 + seed.x * 0.5;
     float phase = seed.y * 6.28318;
-    // [0,1]
     float twinkle = 0.5 + 0.5 * sin(u_time * speed + phase);
 
     twinkle = 0.0 + 1.0 * twinkle;

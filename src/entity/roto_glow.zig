@@ -4,6 +4,7 @@ const rl = @import("raylib");
 
 const ECS = @import("ecs").ECS;
 const EntityId = @import("ecs").EntityId;
+const CollisionLayer = @import("context").CollisionLayer;
 const c = @import("component");
 const a = @import("asset");
 
@@ -40,11 +41,11 @@ pub fn spawn(ecs: *ECS, rng: std.Random, atlas: a.TextureAtlas, pos: rl.Vector2)
     });
     ecs.addComponent(entity_id, c.Hurtbox{
         .radius = 38.0,
-        .layer = c.CollisionLayer.ENEMY,
+        .layer = CollisionLayer.ENEMY,
     });
     ecs.addComponent(entity_id, c.Hitbox{
         .radius = 25.0,
-        .mask = c.CollisionLayer.player,
+        .mask = CollisionLayer.player,
     });
 
     return entity_id;

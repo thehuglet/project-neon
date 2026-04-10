@@ -2,13 +2,14 @@ const std = @import("std");
 
 const ECS = @import("ecs").ECS;
 const EntityId = @import("ecs").EntityId;
+const CollisionLayer = @import("context").CollisionLayer;
 
 pub const OnDeath = struct {
     pub const Data = union(enum) {
         explosion: struct {
             damage: f32,
             radius: f32,
-            collision_mask: u32,
+            collision_mask: CollisionLayer,
         },
     };
 

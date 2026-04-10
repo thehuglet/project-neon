@@ -81,8 +81,3 @@ pub const Registry = [_]struct {
     .{ .component_type = OnDeath, .field_name = "on_death" },
     .{ .component_type = Lifetime, .field_name = "lifetime" },
 };
-
-pub const CollisionLayer = struct {
-    pub const player = 1 << 0;
-    pub const enemy = 1 << 1;
-};

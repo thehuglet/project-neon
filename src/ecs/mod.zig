@@ -123,7 +123,6 @@ pub fn Query(comptime ComponentTypes: anytype) type {
                     const generation = self.ecs.entity_id_pool.getGeneration(entity_index);
                     const entity_id = EntityId{ .index = entity_index, .generation = generation };
                     return QueryItem(ComponentTypes).init(self.ecs, entity_id);
-                    // return QueryItem(ComponentTypes).init(self.ecs, entity_index);
                 }
             }
             return null;

@@ -5,7 +5,8 @@ const rl = @import("raylib");
 const ECS = @import("ecs").ECS;
 const EntityId = @import("ecs").EntityId;
 const c = @import("component");
-const a = @import("asset");
+const TextureAtlas = @import("context").TextureAtlas;
+const CollisionLayer = @import("context").CollisionLayer;
 
 const explosion_entity = @import("explosion.zig");
 
@@ -17,7 +18,7 @@ pub fn spawn(
     ecs: *ECS,
     owner: EntityId,
     stats: weapon.WeaponPartStats,
-    atlas: a.TextureAtlas,
+    atlas: TextureAtlas,
     pos: rl.Vector2,
     facing_angle: f32,
 ) EntityId {
@@ -50,7 +51,7 @@ pub fn spawn(
     });
     ecs.addComponent(entity_id, c.Hitbox{
         .radius = 8.0,
-        .mask = c.CollisionLayer.enemy,
+        .mask = .{ .enemy = true },
         .damage = stats.projectile.explosion.damage,
     });
     ecs.addComponent(entity_id, c.SpinCosmetic{
@@ -67,7 +68,7 @@ pub fn spawn(
             .explosion = .{
                 .damage = stats.projectile.explosion.damage,
                 .radius = stats.projectile.explosion.radius,
-                .collision_mask = c.CollisionLayer.enemy,
+                .collision_mask = .{ .enemy = true },
             },
         },
     });

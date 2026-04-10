@@ -2,6 +2,7 @@ const std = @import("std");
 
 const rl = @import("raylib");
 
+const Context = @import("context").Context;
 const ECS = @import("ecs").ECS;
 const e = @import("entity");
 const c = @import("component");
@@ -12,14 +13,12 @@ const helpers = @import("helpers");
 const weapon = @import("weapon");
 
 pub fn handleWeapons(
-    ecs: *ECS,
-    rng: std.Random,
-    mouse_pos: rl.Vector2,
-    projectile_atlas: a.TextureAtlas,
+    ctx: *Context,
 ) void {
     const dt: f32 = rl.getFrameTime();
+    const projectile_atlas = ctx.atlases.get(.projectile).?;
 
-    var query = ecs.query(.{
+    var query = ctx.ecs.query(.{
         c.WeaponUseIntent,
         c.WeaponSlots,
         c.Transform,
@@ -47,13 +46,13 @@ pub fn handleWeapons(
                 remaining_primary_cd.* = 1.0 / stats.primary.fire_rate;
 
                 weapon.usePrimary(
-                    ecs,
-                    rng,
+                    &ctx.ecs,
+                    ctx.rng,
                     slotted_weapon.id,
                     projectile_atlas,
                     item.entity_id,
                     transform,
-                    mouse_pos,
+                    ctx.mouse_pos,
                 );
             }
 
@@ -62,13 +61,13 @@ pub fn handleWeapons(
                 remaining_secondary_cd.* = 1.0 / stats.secondary.fire_rate;
 
                 weapon.useSecondary(
-                    ecs,
-                    rng,
+                    &ctx.ecs,
+                    ctx.rng,
                     slotted_weapon.id,
                     projectile_atlas,
                     item.entity_id,
                     transform,
-                    mouse_pos,
+                    ctx.mouse_pos,
                 );
             }
         }

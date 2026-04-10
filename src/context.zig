@@ -2,6 +2,18 @@ const std = @import("std");
 const rl = @import("raylib");
 const ECS = @import("ecs").ECS;
 const EntityId = @import("ecs").EntityId;
+const math = @import("math");
+const enums = @import("enums");
+
+pub const CollisionLayer = packed struct {
+    player: bool = false,
+    enemy: bool = false,
+};
+
+pub const GameSettings = struct {
+    show_hurtboxes: bool,
+    show_hitboxes: bool,
+};
 
 pub const TextureAtlas = struct {
     texture: rl.Texture2D,
@@ -28,16 +40,22 @@ pub const TextureAtlas = struct {
 
 pub const Context = struct {
     allocator: std.mem.Allocator,
-    ecs: *ECS,
+    ecs: ECS,
     rng: std.Random,
-    atlases: std.AutoHashMap([]const u8, TextureAtlas),
-    shaders: std.AutoHashMap([]const u8, rl.Shader),
+    atlases: std.EnumMap(enums.AtlasId, TextureAtlas),
+    shaders: std.EnumMap(enums.ShaderId, rl.Shader),
+    game_settings: GameSettings = .{
+        .show_hurtboxes = false,
+        .show_hitboxes = false,
+    },
     temp: struct {
         hurt_ids: std.ArrayList(EntityId) = .empty,
         hurt_positions: std.ArrayList(rl.Vector2) = .empty,
         hurt_radii: std.ArrayList(f32) = .empty,
         hurt_layers: std.ArrayList(u32) = .empty,
     },
+    mouse_pos: rl.Vector2 = math.VECTOR2_ZERO,
+    // window_mouse_pos: rl.Vector2 = .zero(),
 
     pub fn deinit(self: *Context) void {
         // ECS

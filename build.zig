@@ -50,6 +50,7 @@ pub fn build(b: *std.Build) void {
         .{ .name = "system", .path = "src/system/mod.zig" },
         .{ .name = "ecs", .path = "src/ecs/mod.zig" },
         .{ .name = "context", .path = "src/context.zig" },
+        .{ .name = "enums", .path = "src/enums.zig" },
     };
 
     for (included_modules) |info| {

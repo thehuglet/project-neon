@@ -3,11 +3,14 @@ const rl = @import("raylib");
 const ECS = @import("ecs").ECS;
 const EntityId = @import("ecs").EntityId;
 const c = @import("component");
-const a = @import("asset");
+
+// const a = @import("asset");
+const TextureAtlas = @import("context").TextureAtlas;
+const CollisionLayer = @import("context").CollisionLayer;
 
 const weapon = @import("weapon");
 
-pub fn spawn(ecs: *ECS, atlas: a.TextureAtlas, pos: rl.Vector2) EntityId {
+pub fn spawn(ecs: *ECS, atlas: TextureAtlas, pos: rl.Vector2) EntityId {
     const entity_id = ecs.assignEntityId();
 
     ecs.addComponent(entity_id, c.Player{});
@@ -39,7 +42,7 @@ pub fn spawn(ecs: *ECS, atlas: a.TextureAtlas, pos: rl.Vector2) EntityId {
     });
     ecs.addComponent(entity_id, c.Hurtbox{
         .radius = 30.0,
-        .layer = c.CollisionLayer.player,
+        .layer = .{ .player = true },
     });
     ecs.addComponent(entity_id, c.HealthLives{
         .max_lives = 3,

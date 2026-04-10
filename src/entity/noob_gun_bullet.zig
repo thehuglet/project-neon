@@ -3,7 +3,8 @@ const rl = @import("raylib");
 const ECS = @import("ecs").ECS;
 const EntityId = @import("ecs").EntityId;
 const c = @import("component");
-const a = @import("asset");
+const TextureAtlas = @import("context").TextureAtlas;
+const CollisionLayer = @import("context").CollisionLayer;
 
 const weapon = @import("weapon");
 const math = @import("math");
@@ -12,7 +13,7 @@ pub fn spawn(
     ecs: *ECS,
     owner: EntityId,
     stats: weapon.WeaponPartStats,
-    atlas: a.TextureAtlas,
+    atlas: TextureAtlas,
     pos: rl.Vector2,
     facing_angle: f32,
 ) EntityId {
@@ -35,7 +36,7 @@ pub fn spawn(
         .mass = 10.0,
         .friction = 0.0,
         .ignores_drag = true,
-        .velocity = math.angleToVec2(facing_angle).scale(1400.0),
+        .velocity = math.angleToVec2(facing_angle).scale(1600.0),
     });
     ecs.addComponent(entity_id, c.NeonSprite{
         .atlas = atlas,
@@ -45,7 +46,7 @@ pub fn spawn(
     });
     ecs.addComponent(entity_id, c.Hitbox{
         .radius = 16.0,
-        .mask = c.CollisionLayer.enemy,
+        .mask = .{ .enemy = true },
         .damage = stats.projectile.impact.damage,
     });
     ecs.addComponent(entity_id, c.SpinCosmetic{

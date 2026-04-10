@@ -54,10 +54,13 @@ pub fn randomFloatRange(random: std.Random, min: f32, max: f32) f32 {
 /// Retrieves the shader uniform location.
 ///
 /// # PANIC
-///
 /// Will panic if the uniform location doesn't exist.
-pub fn getShaderUniformChecked(shader: rl.Shader, uniform_name: [:0]const u8) i32 {
-    return rl.getShaderLocation(shader, uniform_name);
+pub fn shaderUniform(shader: rl.Shader, uniform_name: [:0]const u8) i32 {
+    const loc = rl.getShaderLocation(shader, uniform_name);
+    if (loc == -1) {
+        std.debug.panic("Uniform not found: {s}", .{uniform_name});
+    }
+    return loc;
 }
 
 /// Returns the X scale of the window in relation to the native size.

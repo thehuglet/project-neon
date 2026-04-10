@@ -4,7 +4,8 @@ const rl = @import("raylib");
 
 const ECS = @import("ecs").ECS;
 const c = @import("component");
-const a = @import("asset");
+// const a = @import("asset");
+const TextureAtlas = @import("context").TextureAtlas;
 
 const math = @import("math");
 const helpers = @import("helpers");
@@ -121,7 +122,7 @@ pub fn drawNeonSprites(ecs: *ECS, shader: rl.Shader) void {
     }
 }
 
-fn textureSource(atlas: a.TextureAtlas, sprite_index: usize, use_blur: bool) rl.Rectangle {
+fn textureSource(atlas: TextureAtlas, sprite_index: usize, use_blur: bool) rl.Rectangle {
     const cols_i32: i32 = @divFloor(atlas.texture.width, atlas.cell_width);
     const cols: usize = @as(usize, @intCast(cols_i32));
     const row: usize = sprite_index / cols;

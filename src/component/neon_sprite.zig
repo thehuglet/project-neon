@@ -1,6 +1,6 @@
 const rl = @import("raylib");
 
-const TextureAtlas = @import("asset").TextureAtlas;
+const TextureAtlas = @import("context").TextureAtlas;
 
 pub const NeonSprite = struct {
     atlas: TextureAtlas,
