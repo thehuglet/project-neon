@@ -2,11 +2,9 @@
 
 // https://github.com/raysan5/raylib/blob/master/examples/shaders/resources/shaders/glsl100/bloom.frag
 
-precision mediump float;
-
 // Input vertex attributes (from vertex shader)
-varying vec2 fragTexCoord;
-varying vec4 fragColor;
+in vec2 fragTexCoord;
+in vec4 fragColor;
 
 // Input uniform values
 uniform sampler2D texture0;
@@ -17,12 +15,14 @@ const float samples = 4.0; // Pixels per axis; higher = bigger glow, worse perfo
 const float quality = 6.0; // Defines size factor: Lower = smaller glow, better quality
 const float intensity = 0.15;
 
+out vec4 finalColor;
+
 void main() {
     vec4 sum = vec4(0);
     vec2 sizeFactor = vec2(1) / size * quality;
 
     // Texel color fetching from texture sampler
-    vec4 source = texture2D(texture0, fragTexCoord);
+    vec4 source = texture(texture0, fragTexCoord);
 
     const int range = 2; // should be = (samples - 1)/2;
 
@@ -36,5 +36,5 @@ void main() {
 
     // Calculate final fragment color
     vec4 blur = sum / (samples * samples);
-    gl_FragColor = ((blur * intensity) + source) * colDiffuse;
+    finalColor = ((blur * intensity) + source) * colDiffuse;
 }

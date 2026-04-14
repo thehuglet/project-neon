@@ -1,7 +1,9 @@
-const std = @import("std");
-const rl = @import("raylib");
 const ECS = @import("ecs").ECS;
 const EntityId = @import("ecs").EntityId;
+const ParticleData = @import("particle").ParticleData;
+
+const std = @import("std");
+const rl = @import("raylib");
 const math = @import("math");
 const enums = @import("enums");
 
@@ -57,6 +59,7 @@ pub const Context = struct {
     },
     atlases: std.EnumMap(enums.AtlasId, TextureAtlas),
     shaders: std.EnumMap(enums.ShaderId, rl.Shader),
+    particles: ParticleData,
     game_settings: struct {
         show_hurtboxes: bool,
         show_hitboxes: bool,

@@ -13,6 +13,7 @@ const helpers = @import("helpers");
 const rl = @import("raylib");
 const system = @import("system");
 const debug = @import("debug.zig");
+const particle = @import("particle");
 
 pub fn main() !void {
     const allocator = switch (builtin.mode) {
@@ -33,20 +34,6 @@ pub fn main() !void {
     rl.initWindow(1600, 900, "Project Neon");
     rl.setTargetFPS(144);
     defer rl.closeWindow();
-
-    // --- Init particle compute ---
-    {
-        const shader_code = rl.loadFileText("assets/shaders/particle_compute.glsl");
-        const shader_data: u32 = rl.gl.rlCompileShader(shader_code, rl.gl.rl_compute_shader);
-        const compute_shader = rl.gl.rlLoadComputeShaderProgram(shader_data);
-        rl.unloadFileText(shader_code);
-
-        _ = compute_shader;
-
-        const numParticles = 1024 * 100;
-        const positions = rl.memAlloc(@sizeOf(rl.Vector4) * numParticles);
-        const velocities = rl.memAlloc(@sizeOf(rl.Vector4) * numParticles);
-    }
 
     // --- Init context ---
     var ctx = Context{
@@ -84,6 +71,7 @@ pub fn main() !void {
             .show_hurtboxes = false,
             .show_hitboxes = false,
         },
+        .particles = particle.init(allocator, prng.random()),
         .player_input_state = .{
             .move_up = false,
             .move_down = false,
@@ -116,8 +104,16 @@ pub fn main() !void {
             @floatFromInt(ctx.canvas_size.width),
             @floatFromInt(ctx.canvas_size.height),
         };
-        const u_resolution = helpers.shaderUniform(shader, "u_resolution");
-        rl.setShaderValue(shader, u_resolution, &resolution, .vec2);
+        const resolution_loc = helpers.shaderUniform(shader, "u_resolution");
+        rl.setShaderValue(shader, resolution_loc, &resolution, .vec2);
+    }
+
+    // --- Init particles ortho matrix ---
+    {
+        const shader = ctx.shaders.get(.particle).?;
+        const ortho: rl.Matrix = rl.math.matrixOrtho(-1.0, 1.0, -1.0, 1.0, 0.0, 10.0);
+        const projection_loc: i32 = rl.getShaderLocation(shader, "projection");
+        rl.setShaderValueMatrix(shader, projection_loc, ortho);
     }
 
     // --- Spawn player ---

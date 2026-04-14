@@ -53,6 +53,7 @@ pub fn build(b: *std.Build) void {
         .{ .name = "ecs", .path = "src/ecs/mod.zig" },
         .{ .name = "context", .path = "src/context.zig" },
         .{ .name = "enums", .path = "src/enums.zig" },
+        .{ .name = "particle", .path = "src/particle.zig" },
     };
 
     for (included_modules) |info| {
