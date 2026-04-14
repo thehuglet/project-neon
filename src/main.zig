@@ -14,14 +14,6 @@ const rl = @import("raylib");
 const system = @import("system");
 const debug = @import("debug.zig");
 
-const WINDOW_WIDTH = 1600;
-const WINDOW_HEIGHT = 900;
-
-const CANVAS_WIDTH = 1920;
-const CANVAS_HEIGHT = 1090;
-const CANVAS_WIDTH_F32: f32 = @floatFromInt(CANVAS_WIDTH);
-const CANVAS_HEIGHT_F32: f32 = @floatFromInt(CANVAS_HEIGHT);
-
 pub fn main() !void {
     const allocator = switch (builtin.mode) {
         .Debug, .ReleaseSafe => blk: {
@@ -38,7 +30,7 @@ pub fn main() !void {
         .window_resizable = true,
         .msaa_4x_hint = false,
     });
-    rl.initWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Project Neon");
+    rl.initWindow(1600, 900, "Project Neon");
     rl.setTargetFPS(144);
     defer rl.closeWindow();
 
@@ -48,8 +40,8 @@ pub fn main() !void {
         .allocator = allocator,
         .rng = prng.random(),
         .canvas_size = .{
-            .width = CANVAS_WIDTH,
-            .height = CANVAS_HEIGHT,
+            .width = 1920,
+            .height = 1080,
         },
         .atlases = .init(.{
             .cube = .init("assets/gen_textures/atlases/cube_atlas.png", 96, 96),
