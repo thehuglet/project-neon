@@ -1,18 +1,12 @@
+const Context = @import("context").Context;
+
 const std = @import("std");
-
 const rl = @import("raylib");
-
-const ECS = @import("ecs").ECS;
-// const EntityId = @import("ecs").EntityId;
-
 const c = @import("component");
 const a = @import("asset");
 
-// const helpers = @import("helpers");
-// const math = @import("math");
-
-pub fn drawLumenBar(ecs: *ECS) void {
-    var query = ecs.query(.{
+pub fn drawLumenBar(ctx: *Context) void {
+    var query = ctx.ecs.query(.{
         c.Player,
         c.Lumen,
     });

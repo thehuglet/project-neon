@@ -3,14 +3,14 @@ const std = @import("std");
 const rl = @import("raylib");
 
 const ECS = @import("ecs").ECS;
+const TextureAtlas = @import("context").TextureAtlas;
 const EntityId = @import("ecs").EntityId;
 const CollisionLayer = @import("context").CollisionLayer;
 const c = @import("component");
-const a = @import("asset");
 
 const helpers = @import("helpers");
 
-pub fn spawn(ecs: *ECS, rng: std.Random, atlas: a.TextureAtlas, pos: rl.Vector2) EntityId {
+pub fn spawn(ecs: *ECS, rng: std.Random, atlas: TextureAtlas, pos: rl.Vector2) EntityId {
     const entity_id = ecs.assignEntityId();
 
     const max_hp = 100.0;
@@ -47,11 +47,11 @@ pub fn spawn(ecs: *ECS, rng: std.Random, atlas: a.TextureAtlas, pos: rl.Vector2)
     });
     ecs.addComponent(entity_id, c.Hurtbox{
         .radius = 38.0,
-        .layer = CollisionLayer.enemy,
+        .layer = CollisionLayer{ .enemy = true },
     });
     ecs.addComponent(entity_id, c.Hitbox{
         .radius = 25.0,
-        .mask = CollisionLayer.player,
+        .mask = CollisionLayer{ .player = true },
         .damage = 0.0,
     });
 

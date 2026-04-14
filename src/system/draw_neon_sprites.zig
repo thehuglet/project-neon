@@ -1,25 +1,24 @@
+const Context = @import("context").Context;
+
 const std = @import("std");
-
 const rl = @import("raylib");
-
-const ECS = @import("ecs").ECS;
 const c = @import("component");
-// const a = @import("asset");
 const TextureAtlas = @import("context").TextureAtlas;
 
 const math = @import("math");
 const helpers = @import("helpers");
 
-pub fn drawNeonSprites(ecs: *ECS, shader: rl.Shader) void {
+pub fn drawNeonSprites(ctx: *Context) void {
     rl.beginBlendMode(rl.BlendMode.additive);
     defer rl.endBlendMode();
 
     // Blur sprite drawing
     {
+        const shader = ctx.shaders.get(.neon_sprite).?;
         rl.beginShaderMode(shader);
         defer rl.endShaderMode();
 
-        var blur_pass_query = ecs.query(.{
+        var blur_pass_query = ctx.ecs.query(.{
             c.Transform,
             c.NeonSprite,
         });
@@ -33,13 +32,13 @@ pub fn drawNeonSprites(ecs: *ECS, shader: rl.Shader) void {
             var hue_shift: f32 = 0.0;
             var lightness_shift: f32 = 0.0;
 
-            if (ecs.getComponent(item.entity_id, c.DashTrailGhost)) |ghost| {
+            // --- Component-based alterations
+            if (ctx.ecs.getComponent(item.entity_id, c.DashTrailGhost)) |ghost| {
                 alpha *= ghost.current_alpha_scale;
                 scale *= ghost.current_scale;
                 hue_shift += ghost.current_hue_shift;
             }
-
-            if (ecs.getComponent(item.entity_id, c.DamageFlash)) |dmg_flash| {
+            if (ctx.ecs.getComponent(item.entity_id, c.DamageFlash)) |dmg_flash| {
                 lightness_shift += dmg_flash.current_lightness_shift;
                 alpha_scale *= dmg_flash.current_alpha_scale;
             }
@@ -71,7 +70,7 @@ pub fn drawNeonSprites(ecs: *ECS, shader: rl.Shader) void {
     }
     // Normal sprite drawing
     {
-        var base_pass_query = ecs.query(.{
+        var base_pass_query = ctx.ecs.query(.{
             c.Transform,
             c.NeonSprite,
         });
@@ -83,7 +82,8 @@ pub fn drawNeonSprites(ecs: *ECS, shader: rl.Shader) void {
             var scale: f32 = neon_sprite.scale;
             // var hue_shift: f32 = 0.0;
 
-            if (ecs.getComponent(item.entity_id, c.DashTrailGhost)) |ghost| {
+            // --- Component-based alterations
+            if (ctx.ecs.getComponent(item.entity_id, c.DashTrailGhost)) |ghost| {
                 alpha *= ghost.current_alpha_scale;
                 scale *= ghost.current_scale;
                 // hue_shift += ghost.current_hue_shift;

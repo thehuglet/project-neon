@@ -1,9 +1,8 @@
-const ECS = @import("ecs").ECS;
-
+const Context = @import("context").Context;
 const c = @import("component");
 
-pub fn oneTickHitbox(ecs: *ECS) void {
-    var query = ecs.query(.{
+pub fn oneTickHitbox(ctx: *Context) void {
+    var query = ctx.ecs.query(.{
         c.OneTickHitbox,
         c.Hitbox,
     });
@@ -11,6 +10,6 @@ pub fn oneTickHitbox(ecs: *ECS) void {
         const hitbox: *c.Hitbox = item.get(c.Hitbox).?;
 
         hitbox.active = false;
-        ecs.removeComponent(item.entity_id, c.OneTickHitbox);
+        ctx.ecs.removeComponent(item.entity_id, c.OneTickHitbox);
     }
 }

@@ -1,14 +1,13 @@
+const Context = @import("context").Context;
+
 const std = @import("std");
-
 const rl = @import("raylib");
-
-const ECS = @import("ecs").ECS;
 const c = @import("component");
 
-pub fn drawNeonSpriteEntityCount(ecs: *ECS) void {
+pub fn drawNeonSpriteEntityCount(ctx: *Context) void {
     var entity_count: u32 = 0;
 
-    var query = ecs.query(.{
+    var query = ctx.ecs.query(.{
         c.NeonSprite,
     });
     while (query.next()) |_| {

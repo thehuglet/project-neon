@@ -28,3 +28,5 @@ pub const updateLifetime = @import("update_lifetime.zig").updateLifetime;
 pub const onDeath = @import("on_death.zig").onDeath;
 pub const drawRingOverT = @import("draw_ring_over_t.zig").drawRingOverT;
 pub const updateRingOverTLifetime = @import("update_ring_over_t_lifetime.zig").updateRingOverTLifetime;
+pub const drawStarfieldBackground = @import("draw_starfield_background.zig").drawStarfieldBackground;
+pub const updateCanvasMousePos = @import("update_canvas_mouse_pos.zig").updateCanvasMousePos;

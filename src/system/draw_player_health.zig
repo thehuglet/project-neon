@@ -1,12 +1,11 @@
+const Context = @import("context").Context;
+
 const std = @import("std");
-
 const rl = @import("raylib");
-
-const ECS = @import("ecs").ECS;
 const c = @import("component");
 
-pub fn drawPlayerHealth(ecs: *ECS) void {
-    var query = ecs.query(.{
+pub fn drawPlayerHealth(ctx: *Context) void {
+    var query = ctx.ecs.query(.{
         c.Player,
         c.HealthLives,
     });

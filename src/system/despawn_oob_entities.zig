@@ -1,10 +1,13 @@
-const rl = @import("raylib");
+const Context = @import("context").Context;
 
-const ECS = @import("ecs").ECS;
+const rl = @import("raylib");
 const c = @import("component");
 
-pub fn despawnOOBEntities(ecs: *ECS, native_width: f32, native_height: f32, margin: f32) void {
-    var query = ecs.query(.{
+pub fn despawnOOBEntities(ctx: *Context, margin: f32) void {
+    const canvas_width_f32: f32 = @floatFromInt(ctx.canvas_size.width);
+    const canvas_height_f32: f32 = @floatFromInt(ctx.canvas_size.height);
+
+    var query = ctx.ecs.query(.{
         c.DespawnsWhenOOB,
         c.Transform,
     });
@@ -13,8 +16,8 @@ pub fn despawnOOBEntities(ecs: *ECS, native_width: f32, native_height: f32, marg
 
         const oob_left: bool = transform.pos.x < 0 - margin;
         const oob_top: bool = transform.pos.y < 0 - margin;
-        const oob_right: bool = transform.pos.x > native_width + margin;
-        const oob_bottom: bool = transform.pos.y > native_height + margin;
+        const oob_right: bool = transform.pos.x > canvas_width_f32 + margin;
+        const oob_bottom: bool = transform.pos.y > canvas_height_f32 + margin;
 
         if (oob_left or oob_top or oob_right or oob_bottom) {
             item.ecs.deleteEntity(item.entity_id);

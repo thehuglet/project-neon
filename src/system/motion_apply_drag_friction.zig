@@ -1,16 +1,15 @@
+const Context = @import("context").Context;
+
 const rl = @import("raylib");
-
-const ECS = @import("ecs").ECS;
 const c = @import("component");
-
 const math = @import("math");
 
 const DRAG: f32 = 0.2;
 
-pub fn motionApplyDragFriction(ecs: *ECS) void {
+pub fn motionApplyDragFriction(ctx: *Context) void {
     const dt: f32 = rl.getFrameTime();
 
-    var query = ecs.query(.{
+    var query = ctx.ecs.query(.{
         c.Motion,
     });
 

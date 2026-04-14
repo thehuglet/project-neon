@@ -5,13 +5,7 @@ const std = @import("std");
 const rl = @import("raylib");
 const c = @import("component");
 
-pub fn handleCollisions(
-    ctx: *Context,
-    // hurt_ids: *std.ArrayList(EntityId),
-    // hurt_positions: *std.ArrayList(rl.Vector2),
-    // hurt_radii: *std.ArrayList(f32),
-    // hurt_layers: *std.ArrayList(u32),
-) void {
+pub fn handleCollisions(ctx: *Context) void {
     const dt: f32 = rl.getFrameTime();
 
     const hurt_ids = &ctx.temp.hurt_ids;

@@ -46,6 +46,10 @@ pub const Context = struct {
     allocator: std.mem.Allocator,
     ecs: ECS,
     rng: std.Random,
+    canvas_size: struct {
+        width: i32,
+        height: i32,
+    },
     atlases: std.EnumMap(enums.AtlasId, TextureAtlas),
     shaders: std.EnumMap(enums.ShaderId, rl.Shader),
     game_settings: GameSettings = .{
@@ -59,7 +63,15 @@ pub const Context = struct {
         hurt_layers: std.ArrayList(CollisionLayer) = .empty,
     },
     mouse_pos: rl.Vector2 = math.VECTOR2_ZERO,
-    // window_mouse_pos: rl.Vector2 = .zero(),
+    player_input_state: struct {
+        move_up: bool = false,
+        move_down: bool = false,
+        move_left: bool = false,
+        move_right: bool = false,
+        dash: bool = false,
+        use_primary_fire: bool = false,
+        use_secondary_fire: bool = false,
+    },
 
     pub fn deinit(self: *Context) void {
         // ECS
