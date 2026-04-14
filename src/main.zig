@@ -28,7 +28,7 @@ pub fn main() !void {
     // --- Init raylib ---
     rl.setConfigFlags(rl.ConfigFlags{
         .window_resizable = true,
-        .msaa_4x_hint = false,
+        .msaa_4x_hint = true,
     });
     rl.initWindow(1600, 900, "Project Neon");
     rl.setTargetFPS(144);
