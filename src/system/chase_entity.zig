@@ -55,7 +55,7 @@ pub fn chaseEntity(ctx: *Context) void {
         const target_in_cone: bool = @abs(angle_diff) < chase_entity.accel_cone_angle;
 
         if (target_in_cone) {
-            helpers.accelerate(
+            helpers.motion_accelerate(
                 motion,
                 movement,
                 chase_entity.facing_direction,

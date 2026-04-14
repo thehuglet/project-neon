@@ -14,11 +14,6 @@ pub const CollisionLayer = packed struct {
     }
 };
 
-pub const GameSettings = struct {
-    show_hurtboxes: bool,
-    show_hitboxes: bool,
-};
-
 pub const TextureAtlas = struct {
     texture: rl.Texture2D,
     cell_width: i32,
@@ -42,6 +37,16 @@ pub const TextureAtlas = struct {
     }
 };
 
+pub const PlayerInputState = struct {
+    move_up: bool,
+    move_down: bool,
+    move_left: bool,
+    move_right: bool,
+    dash: bool,
+    use_primary_fire: bool,
+    use_secondary_fire: bool,
+};
+
 pub const Context = struct {
     allocator: std.mem.Allocator,
     ecs: ECS,
@@ -52,26 +57,18 @@ pub const Context = struct {
     },
     atlases: std.EnumMap(enums.AtlasId, TextureAtlas),
     shaders: std.EnumMap(enums.ShaderId, rl.Shader),
-    game_settings: GameSettings = .{
-        .show_hurtboxes = false,
-        .show_hitboxes = false,
+    game_settings: struct {
+        show_hurtboxes: bool,
+        show_hitboxes: bool,
     },
     temp: struct {
-        hurt_ids: std.ArrayList(EntityId) = .empty,
-        hurt_positions: std.ArrayList(rl.Vector2) = .empty,
-        hurt_radii: std.ArrayList(f32) = .empty,
-        hurt_layers: std.ArrayList(CollisionLayer) = .empty,
+        hurt_ids: std.ArrayList(EntityId),
+        hurt_positions: std.ArrayList(rl.Vector2),
+        hurt_radii: std.ArrayList(f32),
+        hurt_layers: std.ArrayList(CollisionLayer),
     },
     mouse_pos: rl.Vector2 = math.VECTOR2_ZERO,
-    player_input_state: struct {
-        move_up: bool = false,
-        move_down: bool = false,
-        move_left: bool = false,
-        move_right: bool = false,
-        dash: bool = false,
-        use_primary_fire: bool = false,
-        use_secondary_fire: bool = false,
-    },
+    player_input_state: PlayerInputState,
 
     pub fn deinit(self: *Context) void {
         // ECS

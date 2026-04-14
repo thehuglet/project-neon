@@ -1,10 +1,10 @@
+const PlayerInputState = @import("context").PlayerInputState;
+
 const std = @import("std");
-
 const rl = @import("raylib");
-
 const c = @import("component");
 
-pub fn accelerate(motion: *c.Motion, movement: *const c.Movement, direction: rl.Vector2, delta_time: f32) void {
+pub fn motion_accelerate(motion: *c.Motion, movement: *const c.Movement, direction: rl.Vector2, delta_time: f32) void {
     if (direction.length() == 0.0) return;
 
     const normalized = direction.normalize();
@@ -28,7 +28,7 @@ pub fn accelerate(motion: *c.Motion, movement: *const c.Movement, direction: rl.
     }
 }
 
-pub fn brake(motion: *c.Motion, movement: *const c.Movement, delta_time: f32) void {
+pub fn motion_brake(motion: *c.Motion, movement: *const c.Movement, delta_time: f32) void {
     const speed = motion.velocity.length();
     if (speed == 0.0) return;
 
@@ -91,4 +91,18 @@ pub fn fromScreenCoords(to_size: rl.Vector2, pos: rl.Vector2) rl.Vector2 {
         .x = pos.x * scale.x,
         .y = pos.y * scale.y,
     };
+}
+
+pub fn playerInputDirection(inputs: *const PlayerInputState) rl.Vector2 {
+    var input_dir = rl.Vector2.zero();
+
+    if (inputs.move_up) input_dir.y -= 1;
+    if (inputs.move_down) input_dir.y += 1;
+    if (inputs.move_left) input_dir.x -= 1;
+    if (inputs.move_right) input_dir.x += 1;
+
+    if (input_dir.length() == 0.0) {
+        return rl.Vector2.zero();
+    }
+    return rl.Vector2.normalize(input_dir);
 }

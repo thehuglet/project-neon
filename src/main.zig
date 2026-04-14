@@ -71,7 +71,25 @@ pub fn main() !void {
                 "assets/shaders/starfield.frag",
             ),
         }),
-        .temp = .{},
+        .game_settings = .{
+            .show_hurtboxes = false,
+            .show_hitboxes = false,
+        },
+        .player_input_state = .{
+            .move_up = false,
+            .move_down = false,
+            .move_left = false,
+            .move_right = false,
+            .dash = false,
+            .use_primary_fire = false,
+            .use_secondary_fire = false,
+        },
+        .temp = .{
+            .hurt_ids = .empty,
+            .hurt_positions = .empty,
+            .hurt_radii = .empty,
+            .hurt_layers = .empty,
+        },
     };
 
     // --- Init canvas ---
@@ -94,7 +112,7 @@ pub fn main() !void {
     }
 
     // --- Spawn player ---
-    _ = entity.player.spawn(&ctx.ecs, ctx.atlases.get(.cube).?, .init(400, 400));
+    _ = entity.player.spawn(&ctx, .init(400.0, 400.0));
 
     while (!rl.windowShouldClose()) {
         ctx.clearTemp();

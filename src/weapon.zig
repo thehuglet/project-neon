@@ -84,7 +84,7 @@ pub const STATS = std.EnumMap(WeaponId, WeaponStats).init(.{
     },
 });
 
-pub fn createWeapon(weapon_id: WeaponId) WeaponInstance {
+pub fn createWeaponInstance(weapon_id: WeaponId) WeaponInstance {
     return WeaponInstance{
         .id = weapon_id,
     };

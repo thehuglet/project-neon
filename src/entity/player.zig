@@ -1,24 +1,19 @@
-const rl = @import("raylib");
-
-const ECS = @import("ecs").ECS;
 const EntityId = @import("ecs").EntityId;
+const Context = @import("context").Context;
+
+const rl = @import("raylib");
 const c = @import("component");
-
-// const a = @import("asset");
-const TextureAtlas = @import("context").TextureAtlas;
-const CollisionLayer = @import("context").CollisionLayer;
-
 const weapon = @import("weapon");
 
-pub fn spawn(ecs: *ECS, atlas: TextureAtlas, pos: rl.Vector2) EntityId {
-    const entity_id = ecs.assignEntityId();
+pub fn spawn(ctx: *Context, pos: rl.Vector2) EntityId {
+    const entity_id = ctx.ecs.assignEntityId();
+    const ecs = &ctx.ecs;
 
     ecs.addComponent(entity_id, c.Player{});
-    ecs.addComponent(entity_id, c.PlayerInput{});
     ecs.addComponent(entity_id, c.WeaponUseIntent{});
     ecs.addComponent(entity_id, c.WeaponSlots{
         .slots = .{
-            weapon.createWeapon(.noob_gun),
+            weapon.createWeaponInstance(.noob_gun),
             null,
         },
     });
@@ -36,7 +31,7 @@ pub fn spawn(ecs: *ECS, atlas: TextureAtlas, pos: rl.Vector2) EntityId {
         .accel_time = 0.01,
     });
     ecs.addComponent(entity_id, c.NeonSprite{
-        .atlas = atlas,
+        .atlas = ctx.atlases.get(.cube).?,
         .sprite_index = 8,
         .color = rl.Color.init(100, 200, 255, 255),
     });

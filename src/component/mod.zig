@@ -21,7 +21,6 @@ pub const DamageFlash = @import("damage_flash.zig").DamageFlash;
 pub const RingOverT = @import("ring_over_t.zig").RingOverT;
 
 // Other
-pub const PlayerInput = @import("player_input.zig").PlayerInput;
 pub const Transform = @import("transform.zig").Transform;
 pub const Movement = @import("movement.zig").Movement;
 pub const Motion = @import("motion.zig").Motion;
@@ -65,7 +64,6 @@ pub const Registry = [_]struct {
     .{ .component_type = RingOverT, .field_name = "ring_over_t" },
 
     // Other
-    .{ .component_type = PlayerInput, .field_name = "player_input" },
     .{ .component_type = Transform, .field_name = "transform" },
     .{ .component_type = Movement, .field_name = "movement" },
     .{ .component_type = Motion, .field_name = "motion" },

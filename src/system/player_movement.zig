@@ -1,4 +1,5 @@
 const Context = @import("context").Context;
+const PlayerInputState = @import("context").PlyerInputState;
 
 const rl = @import("raylib");
 const c = @import("component");
@@ -8,35 +9,18 @@ pub fn playerMovement(ctx: *Context) void {
     const dt: f32 = rl.getFrameTime();
 
     var query = ctx.ecs.query(.{
-        c.PlayerInput,
         c.Motion,
         c.Movement,
     });
     while (query.next()) |item| {
-        const player_input: *c.PlayerInput = item.get(c.PlayerInput).?;
         const motion: *c.Motion = item.get(c.Motion).?;
         const movement: *c.Movement = item.get(c.Movement).?;
 
-        const direction: rl.Vector2 = inputDirection(player_input);
+        const direction: rl.Vector2 = helpers.playerInputDirection(&ctx.player_input_state);
         const is_dashing: bool = ctx.ecs.hasComponent(item.entity_id, c.Dashing);
 
         if (direction.length() > 0.0 and !is_dashing) {
-            helpers.accelerate(motion, movement, direction, dt);
+            helpers.motion_accelerate(motion, movement, direction, dt);
         }
     }
-}
-
-fn inputDirection(player_input: *const c.PlayerInput) rl.Vector2 {
-    var input_direction = rl.Vector2.zero();
-
-    if (player_input.move_up) input_direction.y -= 1;
-    if (player_input.move_down) input_direction.y += 1;
-    if (player_input.move_left) input_direction.x -= 1;
-    if (player_input.move_right) input_direction.x += 1;
-
-    if (input_direction.length() == 0.0) {
-        return rl.Vector2.zero();
-    }
-
-    return rl.Vector2.normalize(input_direction);
 }
