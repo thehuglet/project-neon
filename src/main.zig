@@ -34,6 +34,16 @@ pub fn main() !void {
     rl.setTargetFPS(144);
     defer rl.closeWindow();
 
+    // --- Init particle compute ---
+    {
+        const shader_code = rl.loadFileText("assets/shaders/particle_compute.glsl");
+        const shader_data: u32 = rl.gl.rlCompileShader(shader_code, rl.gl.rl_compute_shader);
+        const compute_shader = rl.gl.rlLoadComputeShaderProgram(shader_data);
+        rl.unloadFileText(shader_code);
+
+        // int shaderData = rlCompileShader(shaderCode, RL_COMPUTE_SHADER);
+    }
+
     // --- Init context ---
     var ctx = Context{
         .ecs = ECS.init(allocator),
@@ -50,16 +60,16 @@ pub fn main() !void {
         }),
         .shaders = .init(.{
             .neon_sprite = try rl.loadShader(
-                "assets/shaders/neon_sprite.vert",
-                "assets/shaders/neon_sprite.frag",
+                "assets/shaders/neon_sprite_vertex.glsl",
+                "assets/shaders/neon_sprite_frag.glsl",
             ),
             .bloom = try rl.loadShader(
                 null,
-                "assets/shaders/bloom.frag",
+                "assets/shaders/bloom_frag.glsl",
             ),
             .starfield = try rl.loadShader(
                 null,
-                "assets/shaders/starfield.frag",
+                "assets/shaders/starfield_frag.glsl",
             ),
         }),
         .game_settings = .{
