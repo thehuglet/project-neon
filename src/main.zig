@@ -1,18 +1,17 @@
-const std = @import("std");
-const builtin = @import("builtin");
-
-const asset = @import("asset");
-const component = @import("component");
 const Context = @import("context").Context;
 const ECS = @import("ecs").ECS;
-const entity = @import("entity");
 const EntityId = @import("ecs").EntityId;
+const TextureAtlas = @import("context").TextureAtlas;
+
+const std = @import("std");
+const builtin = @import("builtin");
+const asset = @import("asset");
+const component = @import("component");
+const entity = @import("entity");
 const enums = @import("enums");
 const helpers = @import("helpers");
 const rl = @import("raylib");
 const system = @import("system");
-const TextureAtlas = @import("context").TextureAtlas;
-
 const debug = @import("debug.zig");
 
 const WINDOW_WIDTH = 1600;
