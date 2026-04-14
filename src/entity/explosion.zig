@@ -43,9 +43,9 @@ pub fn spawn(
     ecs.addComponent(entity_id, c.RingOverT{
         .radius = radius,
         .t = 0.0,
-        .max_radius_at_t = 0.3,
-        .fade_in_at_t = 0.2,
-        .fade_out_at_t = 0.3,
+        .max_radius_at_t = 0.5,
+        .fade_in_at_t = 0.0,
+        .fade_out_at_t = 0.2,
     });
 
     return entity_id;

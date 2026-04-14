@@ -12,9 +12,7 @@ const math = @import("math");
 const helpers = @import("helpers");
 const weapon = @import("weapon");
 
-pub fn handleWeapons(
-    ctx: *Context,
-) void {
+pub fn handleWeapons(ctx: *Context) void {
     const dt: f32 = rl.getFrameTime();
     const projectile_atlas = ctx.atlases.get(.projectile).?;
 

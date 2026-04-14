@@ -8,6 +8,10 @@ const enums = @import("enums");
 pub const CollisionLayer = packed struct {
     player: bool = false,
     enemy: bool = false,
+
+    pub fn intersects(self: CollisionLayer, other: CollisionLayer) bool {
+        return (@as(u2, @bitCast(self)) & @as(u2, @bitCast(other))) != 0;
+    }
 };
 
 pub const GameSettings = struct {
@@ -52,7 +56,7 @@ pub const Context = struct {
         hurt_ids: std.ArrayList(EntityId) = .empty,
         hurt_positions: std.ArrayList(rl.Vector2) = .empty,
         hurt_radii: std.ArrayList(f32) = .empty,
-        hurt_layers: std.ArrayList(u32) = .empty,
+        hurt_layers: std.ArrayList(CollisionLayer) = .empty,
     },
     mouse_pos: rl.Vector2 = math.VECTOR2_ZERO,
     // window_mouse_pos: rl.Vector2 = .zero(),

@@ -117,143 +117,27 @@ pub fn main() !void {
     _ = entity.player.spawn(&ctx.ecs, ctx.atlases.get(.cube).?, .init(400, 400));
 
     while (!rl.windowShouldClose()) {
+        ctx.ecs.beginQuery();
+
+        // --- Pre-draw update ---
         update(&ctx);
 
+        // --- Canvas drawing ---
         rl.beginTextureMode(canvas);
         draw(&ctx);
         rl.endTextureMode();
 
+        // --- Post-draw update ---
         updatePost(&ctx);
 
-        // const game_time: f32 = @floatCast(rl.getTime());
-        // const screen_mouse_pos = rl.getMousePosition();
-        // const canvas_mouse_pos = rl.Vector2{
-        //     .x = screen_mouse_pos.x / helpers.screenScaleX(NATIVE_WIDTH_F32),
-        //     .y = screen_mouse_pos.y / helpers.screenScaleY(NATIVE_HEIGHT_F32),
-        // };
-
-        // ecs.beginQuery();
-        // defer ecs.endQuery();
-
-        // // ------ Bg starfield shader uniform time setting ------
-        // {
-        //     rl.setShaderValue(
-        //         asset_shader_bg_starfield,
-        //         helpers.shaderUniform(
-        //             asset_shader_bg_starfield,
-        //             "u_time",
-        //         ),
-        //         &game_time,
-        //         .float,
-        //     );
-        // }
-
-        // ------ Debug toggles ------
-        // debug.handleDebugHotkeys(&debug_settings);
-
-        // ------ Game logic ------
-        // {
-        //     system.playerInputs(&ecs);
-        //     system.playerMovement(&ecs);
-        //     system.playerDashInit(&ecs);
-        //     system.playerWeaponControl(&ecs);
-        //     system.setTargetToPlayer(&ecs);
-        //     system.handleWeapons(
-        //         &ecs,
-        //         rng,
-        //         canvas_mouse_pos,
-        //         asset_atlas_projectile,
-        //     );
-        //     system.updateDash(&ecs);
-        //     system.updateDashTrailGhost(&ecs);
-        //     system.updateLifetime(&ecs);
-        //     system.chaseEntity(&ecs);
-        //     system.spinCosmetic(&ecs);
-        //     system.updateDamageFlash(&ecs);
-        //     system.updateRingOverTLifetime(&ecs);
-        //     system.spinCosmeticAccelScaled(&ecs);
-        //     system.playerRotateFacingMouseCosmetic(&ecs, canvas_mouse_pos);
-        //     system.handleCollisions(
-        //         &ecs,
-        //         allocator,
-        //         &temp.hurt_ids,
-        //         &temp.hurt_positions,
-        //         &temp.hurt_radii,
-        //         &temp.hurt_layers,
-        //     );
-
-        // ------ DIRTY TESTING FACILITY ------
-        // {
-        //     for (0..2) |_| {
-        //         if (rl.isKeyPressed(rl.KeyboardKey.v)) {
-        //             _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(1000, 600));
-        //             _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(400, 200));
-        //             _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(1300, 1000));
-        //             _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(300, 1000));
-        //             _ = entity.roto_charger.spawn(&ecs, rng, asset_atlas_roto, .init(500, 600));
-        //         }
-        //     }
-        // }
-
-        // Physics end frame calculations
-        // system.applyMotionToTransform(&ecs);
-        // system.motionApplyDragFriction(&ecs);
-        // }
-
-        // ------ Drawing to canvas ------
-        // {
-        // rl.beginTextureMode(canvas);
-        // defer rl.endTextureMode();
-
-        // // rl.beginShaderMode(asset_shader_bg_starfield);
-        // rl.drawRectangle(
-        //     0,
-        //     0,
-        //     NATIVE_WIDTH,
-        //     NATIVE_HEIGHT,
-        //     rl.Color.black,
-        // );
-        // // rl.endShaderMode();
-
-        // system.drawNeonSprites(&ecs, asset_shader_neon_sprite);
-        // system.drawLumenBar(&ecs);
-        // system.drawRingOverT(&ecs);
-
-        // // Debug drawing
-        // system.drawPlayerHealth(&ecs);
-        // system.drawNeonSpriteEntityCount(&ecs);
-
-        // if (debug_settings.show_hurtboxes) {
-        //     system.drawDebugHurtboxes(&ecs);
-        // }
-        // if (debug_settings.show_hitboxes) {
-        //     system.drawDebugHitboxes(&ecs);
-        // }
-        // }
-
-        // ------ Post-drawing logic ------
-        // {
-        // system.oneTickHitbox(&ecs);
-        // // TODO: fix the death related logic, its a mess
-        // system.despawnOOBEntities(
-        //     &ecs,
-        //     NATIVE_WIDTH_F32,
-        //     NATIVE_HEIGHT_F32,
-        //     100.0,
-        // );
-        // system.lifetimeDespawn(&ecs);
-        // system.zeroHealthDeath(&ecs, rng);
-        // system.onDeath(&ecs, rng);
-        // }
+        ctx.ecs.endQuery();
 
         // ------ Drawing canvas to window ------
         {
-            rl.beginDrawing();
-            defer rl.endDrawing();
-
             const bloom_shader = ctx.shaders.get(.bloom).?;
+
+            rl.beginDrawing();
             rl.beginShaderMode(bloom_shader);
-            defer rl.endShaderMode();
 
             const src = rl.Rectangle{
                 .x = 0,
@@ -277,7 +161,10 @@ pub fn main() !void {
                 rl.Color.white,
             );
 
+            rl.endShaderMode();
+
             rl.drawFPS(0, 0);
+            rl.endDrawing();
         }
     }
 }
@@ -294,29 +181,22 @@ fn update(ctx: *Context) void {
 
     // --- Systems ---
     // debug.handleDebugHotkeys(&ctx.game_settings);
-    system.playerInputs(&ctx.ecs);
-    system.playerMovement(&ctx.ecs);
-    system.playerDashInit(&ctx.ecs);
-    system.playerWeaponControl(&ctx.ecs);
-    system.setTargetToPlayer(&ctx.ecs);
+    system.playerInputs(ctx);
+    system.playerMovement(ctx);
+    system.playerDashInit(ctx);
+    system.playerWeaponControl(ctx);
+    system.setTargetToPlayer(ctx);
     system.handleWeapons(ctx);
-    system.updateDash(&ctx.ecs);
-    system.updateDashTrailGhost(&ctx.ecs);
-    system.updateLifetime(&ctx.ecs);
-    system.chaseEntity(&ctx.ecs);
-    system.spinCosmetic(&ctx.ecs);
-    system.updateDamageFlash(&ctx.ecs);
-    system.updateRingOverTLifetime(&ctx.ecs);
+    system.updateDash(ctx);
+    system.updateDashTrailGhost(ctx);
+    system.updateLifetime(ctx);
+    system.chaseEntity(ctx);
+    system.spinCosmetic(ctx);
+    system.updateDamageFlash(ctx);
+    system.updateRingOverTLifetime(ctx);
     system.spinCosmeticAccelScaled(&ctx.ecs);
     system.playerRotateFacingMouseCosmetic(ctx);
-    // system.handleCollisions(
-    //     &ctx.ecs,
-    //     allocator,
-    //     &temp.hurt_ids,
-    //     &temp.hurt_positions,
-    //     &temp.hurt_radii,
-    //     &temp.hurt_layers,
-    // );
+    system.handleCollisions(ctx);
     system.applyMotionToTransform(&ctx.ecs);
     system.motionApplyDragFriction(&ctx.ecs);
 }
@@ -364,7 +244,7 @@ fn updatePost(ctx: *Context) void {
         &ctx.ecs,
         CANVAS_WIDTH_F32,
         CANVAS_HEIGHT_F32,
-        100.0,
+        -300.0,
     );
     system.lifetimeDespawn(&ctx.ecs);
     system.zeroHealthDeath(&ctx.ecs, ctx.rng);

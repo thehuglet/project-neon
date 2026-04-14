@@ -1,12 +1,12 @@
-const rl = @import("raylib");
+const Context = @import("context").Context;
 
-const ECS = @import("ecs").ECS;
+const rl = @import("raylib");
 const c = @import("component");
 
-pub fn updateDashTrailGhost(ecs: *ECS) void {
+pub fn updateDashTrailGhost(ctx: *Context) void {
     const dt: f32 = rl.getFrameTime();
 
-    var query = ecs.query(.{
+    var query = ctx.ecs.query(.{
         c.DashTrailGhost,
     });
     while (query.next()) |item| {
@@ -16,7 +16,7 @@ pub fn updateDashTrailGhost(ecs: *ECS) void {
         ghost.remaining_lifetime_sec -= dt;
 
         if (ghost.remaining_lifetime_sec <= 0.0) {
-            ecs.deleteEntity(item.entity_id);
+            ctx.ecs.deleteEntity(item.entity_id);
         }
 
         const t: f32 = @min(ghost.remaining_lifetime_sec / ghost.lifetime_sec, 1.0);

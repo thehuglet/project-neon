@@ -1,26 +1,29 @@
-const std = @import("std");
-
-const rl = @import("raylib");
-
-const ECS = @import("ecs").ECS;
+const Context = @import("context").Context;
 const EntityId = @import("ecs").EntityId;
+
 const c = @import("component");
 
-pub fn setTargetToPlayer(ecs: *ECS) void {
-    var query = ecs.query(.{
-        c.Player,
-    });
-    const player_item = query.next() orelse return;
-    const player_entity_id = player_item.entity_id;
-
-    var targetting_entity_query = ecs.query(.{
-        c.TargetsPlayer,
-    });
-    while (targetting_entity_query.next()) |item| {
-        const targetting_entity_id: EntityId = item.entity_id;
-
-        ecs.addComponent(targetting_entity_id, c.TargetedEntity{
-            .entity_id = player_entity_id,
+pub fn setTargetToPlayer(ctx: *Context) void {
+    // Grab target player EntityId
+    const target = blk: {
+        var query = ctx.ecs.query(.{
+            c.Player,
         });
+        const player_item = query.next() orelse return;
+        break :blk player_item.entity_id;
+    };
+
+    // Store in components components
+    {
+        var query = ctx.ecs.query(.{
+            c.TargetsPlayer,
+        });
+        while (query.next()) |item| {
+            const targeting_entity: EntityId = item.entity_id;
+
+            ctx.ecs.addComponent(targeting_entity, c.TargetedEntity{
+                .entity_id = target,
+            });
+        }
     }
 }

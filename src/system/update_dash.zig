@@ -1,15 +1,13 @@
-const std = @import("std");
+const Context = @import("context").Context;
+const EntityId = @import("ecs").EntityId;
 
 const rl = @import("raylib");
-
-const ECS = @import("ecs").ECS;
-const EntityId = @import("ecs").EntityId;
 const c = @import("component");
 
-pub fn updateDash(ecs: *ECS) void {
+pub fn updateDash(ctx: *Context) void {
     const dt: f32 = rl.getFrameTime();
 
-    var query = ecs.query(.{
+    var query = ctx.ecs.query(.{
         c.Dashing,
         c.Transform,
         c.NeonSprite,
@@ -25,7 +23,7 @@ pub fn updateDash(ecs: *ECS) void {
             const final_move = dash.remaining_distance;
             transform.pos.x += dash.direction.x * final_move;
             transform.pos.y += dash.direction.y * final_move;
-            ecs.removeComponent(item.entity_id, c.Dashing);
+            ctx.ecs.removeComponent(item.entity_id, c.Dashing);
         } else {
             transform.pos.x += dash.direction.x * move_distance;
             transform.pos.y += dash.direction.y * move_distance;
@@ -40,15 +38,15 @@ pub fn updateDash(ecs: *ECS) void {
                 if (data.spawn_cooldown <= 0.0) {
                     data.spawn_cooldown = 1.0 / data.spawn_rate;
 
-                    spawnTrailGhostEntity(ecs, transform.*, neon_sprite);
+                    spawnTrailGhostEntity(ctx, transform.*, neon_sprite);
                 }
             },
         }
     }
 }
 
-fn spawnTrailGhostEntity(ecs: *ECS, transform: c.Transform, neon_sprite: *c.NeonSprite) void {
-    const entity_id: EntityId = ecs.assignEntityId();
+fn spawnTrailGhostEntity(ctx: *Context, transform: c.Transform, neon_sprite: *c.NeonSprite) void {
+    const entity_id: EntityId = ctx.ecs.assignEntityId();
 
     const lifetime_sec: f32 = 0.1;
 
@@ -62,12 +60,12 @@ fn spawnTrailGhostEntity(ecs: *ECS, transform: c.Transform, neon_sprite: *c.Neon
         .tint_base = true,
     };
 
-    ecs.addComponent(entity_id, c.DashTrailGhost{
+    ctx.ecs.addComponent(entity_id, c.DashTrailGhost{
         .lifetime_sec = lifetime_sec,
         .remaining_lifetime_sec = lifetime_sec,
         .hue_shift_over_lifetime = 1.75,
         .scale_over_lifetime = 1.5,
     });
-    ecs.addComponent(entity_id, transform);
-    ecs.addComponent(entity_id, neon_sprite_new);
+    ctx.ecs.addComponent(entity_id, transform);
+    ctx.ecs.addComponent(entity_id, neon_sprite_new);
 }

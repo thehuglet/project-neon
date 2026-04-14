@@ -1,17 +1,15 @@
+const Context = @import("context").Context;
+
 const std = @import("std");
-
 const rl = @import("raylib");
-
-const ECS = @import("ecs").ECS;
 const c = @import("component");
 const math = @import("math");
-
 const helpers = @import("helpers");
 
-pub fn chaseEntity(ecs: *ECS) void {
+pub fn chaseEntity(ctx: *Context) void {
     const dt: f32 = rl.getFrameTime();
 
-    var query = ecs.query(.{
+    var query = ctx.ecs.query(.{
         c.ChaseEntity,
         c.TargetedEntity,
         c.Motion,
@@ -25,7 +23,7 @@ pub fn chaseEntity(ecs: *ECS) void {
         const movement: *c.Movement = item.get(c.Movement).?;
         const transform: *c.Transform = item.get(c.Transform).?;
 
-        const target_transform = ecs.getComponent(targeted_entity.entity_id, c.Transform) orelse {
+        const target_transform = ctx.ecs.getComponent(targeted_entity.entity_id, c.Transform) orelse {
             std.log.err(
                 "[Invalid target] Entity {f} tried chasing EntityId {f} with no Transform component",
                 .{

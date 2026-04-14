@@ -1,12 +1,12 @@
-const rl = @import("raylib");
+const Context = @import("context").Context;
 
-const ECS = @import("ecs").ECS;
+const rl = @import("raylib");
 const c = @import("component");
 
-pub fn updateLifetime(ecs: *ECS) void {
+pub fn updateLifetime(ctx: *Context) void {
     const dt: f32 = rl.getFrameTime();
 
-    var query = ecs.query(.{
+    var query = ctx.ecs.query(.{
         c.Lifetime,
     });
     while (query.next()) |item| {

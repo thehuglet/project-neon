@@ -1,14 +1,13 @@
+const Context = @import("context").Context;
+
 const rl = @import("raylib");
-
-const ECS = @import("ecs").ECS;
 const c = @import("component");
-
 const helpers = @import("helpers");
 
-pub fn playerMovement(ecs: *ECS) void {
+pub fn playerMovement(ctx: *Context) void {
     const dt: f32 = rl.getFrameTime();
 
-    var query = ecs.query(.{
+    var query = ctx.ecs.query(.{
         c.PlayerInput,
         c.Motion,
         c.Movement,
@@ -19,7 +18,7 @@ pub fn playerMovement(ecs: *ECS) void {
         const movement: *c.Movement = item.get(c.Movement).?;
 
         const direction: rl.Vector2 = inputDirection(player_input);
-        const is_dashing: bool = ecs.hasComponent(item.entity_id, c.Dashing);
+        const is_dashing: bool = ctx.ecs.hasComponent(item.entity_id, c.Dashing);
 
         if (direction.length() > 0.0 and !is_dashing) {
             helpers.accelerate(motion, movement, direction, dt);

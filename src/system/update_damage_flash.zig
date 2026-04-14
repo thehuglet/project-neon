@@ -1,12 +1,12 @@
-const rl = @import("raylib");
+const Context = @import("context").Context;
 
-const ECS = @import("ecs").ECS;
+const rl = @import("raylib");
 const c = @import("component");
 
-pub fn updateDamageFlash(ecs: *ECS) void {
+pub fn updateDamageFlash(ctx: *Context) void {
     const dt: f32 = rl.getFrameTime();
 
-    var query = ecs.query(.{
+    var query = ctx.ecs.query(.{
         c.DamageFlash,
     });
     while (query.next()) |item| {
@@ -16,7 +16,7 @@ pub fn updateDamageFlash(ecs: *ECS) void {
         dmg_flash.remaining_duration_sec -= dt;
 
         if (dmg_flash.remaining_duration_sec <= 0.0) {
-            ecs.removeComponent(item.entity_id, c.DamageFlash);
+            ctx.ecs.removeComponent(item.entity_id, c.DamageFlash);
         }
 
         const t: f32 = @min(dmg_flash.remaining_duration_sec / dmg_flash.duration_sec, 1.0);

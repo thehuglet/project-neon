@@ -1,10 +1,9 @@
+const Context = @import("context").Context;
 const rl = @import("raylib");
-
-const ECS = @import("ecs").ECS;
 const c = @import("component");
 
-pub fn updateRingOverTLifetime(ecs: *ECS) void {
-    var query = ecs.query(.{
+pub fn updateRingOverTLifetime(ctx: *Context) void {
+    var query = ctx.ecs.query(.{
         c.RingOverT,
         c.Lifetime,
     });

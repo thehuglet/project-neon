@@ -1,24 +1,27 @@
-const std = @import("std");
-
-const rl = @import("raylib");
-
-const ECS = @import("ecs").ECS;
+const Context = @import("context").Context;
 const EntityId = @import("ecs").EntityId;
+
+const std = @import("std");
+const rl = @import("raylib");
 const c = @import("component");
 
 pub fn handleCollisions(
-    ecs: *ECS,
-    allocator: std.mem.Allocator,
-    hurt_ids: *std.ArrayList(EntityId),
-    hurt_positions: *std.ArrayList(rl.Vector2),
-    hurt_radii: *std.ArrayList(f32),
-    hurt_layers: *std.ArrayList(u32),
+    ctx: *Context,
+    // hurt_ids: *std.ArrayList(EntityId),
+    // hurt_positions: *std.ArrayList(rl.Vector2),
+    // hurt_radii: *std.ArrayList(f32),
+    // hurt_layers: *std.ArrayList(u32),
 ) void {
     const dt: f32 = rl.getFrameTime();
 
+    const hurt_ids = &ctx.temp.hurt_ids;
+    const hurt_positions = &ctx.temp.hurt_positions;
+    const hurt_radii = &ctx.temp.hurt_radii;
+    const hurt_layers = &ctx.temp.hurt_layers;
+
     // Collect hurtboxes
     {
-        var query = ecs.query(.{
+        var query = ctx.ecs.query(.{
             c.Transform,
             c.Hurtbox,
         });
@@ -26,16 +29,16 @@ pub fn handleCollisions(
             const transform: *c.Transform = item.get(c.Transform).?;
             const hurtbox: *c.Hurtbox = item.get(c.Hurtbox).?;
 
-            hurt_ids.append(allocator, item.entity_id) catch @panic("OOM");
-            hurt_positions.append(allocator, transform.pos) catch @panic("OOM");
-            hurt_radii.append(allocator, hurtbox.radius * transform.scale) catch @panic("OOM");
-            hurt_layers.append(allocator, hurtbox.layer) catch @panic("OOM");
+            hurt_ids.append(ctx.allocator, item.entity_id) catch @panic("OOM");
+            hurt_positions.append(ctx.allocator, transform.pos) catch @panic("OOM");
+            hurt_radii.append(ctx.allocator, hurtbox.radius * transform.scale) catch @panic("OOM");
+            hurt_layers.append(ctx.allocator, hurtbox.layer) catch @panic("OOM");
         }
     }
 
     // Compare against hitboxes
     {
-        var query = ecs.query(.{
+        var query = ctx.ecs.query(.{
             c.Transform,
             c.Hitbox,
         });
@@ -49,8 +52,9 @@ pub fn handleCollisions(
 
             for (0..hurt_ids.items.len) |i| {
                 const tried_hitting_self: bool = item.entity_id == hurt_ids.items[i];
-                const collision_layer_mismatch: bool = (hitbox.mask & hurt_layers.items[i]) == 0;
-                const attacker_is_dead: bool = !ecs.entityIsAlive(item.entity_id);
+                const collision_layer_mismatch: bool = !hitbox.mask.intersects(hurt_layers.items[i]);
+                // const collision_layer_mismatch: bool = (hitbox.mask & hurt_layers.items[i]) == 0;
+                const attacker_is_dead: bool = !ctx.ecs.entityIsAlive(item.entity_id);
 
                 if (tried_hitting_self or collision_layer_mismatch or attacker_is_dead) {
                     continue;
@@ -85,7 +89,7 @@ pub fn handleCollisions(
 
                 if (collides) {
                     hit(
-                        ecs,
+                        ctx,
                         hurt_ids.items[i],
                         item.entity_id,
                         hitbox,
@@ -96,9 +100,9 @@ pub fn handleCollisions(
     }
 }
 
-fn hit(ecs: *ECS, receiver: EntityId, attacker: EntityId, hitbox: *c.Hitbox) void {
+fn hit(ctx: *Context, receiver: EntityId, attacker: EntityId, hitbox: *c.Hitbox) void {
     dmg_application: {
-        const receiver_health: *c.Health = ecs.getComponent(receiver, c.Health) orelse {
+        const receiver_health: *c.Health = ctx.ecs.getComponent(receiver, c.Health) orelse {
             break :dmg_application;
         };
 
@@ -108,12 +112,12 @@ fn hit(ecs: *ECS, receiver: EntityId, attacker: EntityId, hitbox: *c.Hitbox) voi
     // Dmg flash
     {
         const duration = 0.15;
-        const maybe_existing_dmg_flash: ?*c.DamageFlash = ecs.getComponent(receiver, c.DamageFlash);
+        const maybe_existing_dmg_flash: ?*c.DamageFlash = ctx.ecs.getComponent(receiver, c.DamageFlash);
 
         if (maybe_existing_dmg_flash) |existing_dmg_flash| {
             existing_dmg_flash.remaining_duration_sec = duration;
         } else {
-            ecs.addComponent(receiver, c.DamageFlash{
+            ctx.ecs.addComponent(receiver, c.DamageFlash{
                 .duration_sec = duration,
                 .remaining_duration_sec = duration,
                 .peak_lightness_shift = 3.0,
@@ -124,17 +128,17 @@ fn hit(ecs: *ECS, receiver: EntityId, attacker: EntityId, hitbox: *c.Hitbox) voi
 
     owner_lumen_generation: {
         // Attacker needs to have an owner
-        const owner: *c.Owner = ecs.getComponent(attacker, c.Owner) orelse {
+        const owner: *c.Owner = ctx.ecs.getComponent(attacker, c.Owner) orelse {
             break :owner_lumen_generation;
         };
 
         // Owner needs to have a lumen component
-        const lumen: *c.Lumen = ecs.getComponent(owner.entity_id, c.Lumen) orelse {
+        const lumen: *c.Lumen = ctx.ecs.getComponent(owner.entity_id, c.Lumen) orelse {
             break :owner_lumen_generation;
         };
 
         // Attacker needs to be able to generate lumen
-        const generates_lumen: *c.GeneratesLumen = ecs.getComponent(attacker, c.GeneratesLumen) orelse {
+        const generates_lumen: *c.GeneratesLumen = ctx.ecs.getComponent(attacker, c.GeneratesLumen) orelse {
             break :owner_lumen_generation;
         };
 
@@ -146,17 +150,17 @@ fn hit(ecs: *ECS, receiver: EntityId, attacker: EntityId, hitbox: *c.Hitbox) voi
     }
 
     impact_piercing: {
-        const stats: *c.ProjectileWeaponsStats = ecs.getComponent(attacker, c.ProjectileWeaponsStats) orelse {
+        const stats: *c.ProjectileWeaponsStats = ctx.ecs.getComponent(attacker, c.ProjectileWeaponsStats) orelse {
             break :impact_piercing;
         };
 
         // TODO: this is temporary, piercing currently doesnt get decreased, fix this
         if (stats.stats.projectile == .impact and stats.stats.projectile.impact.piercing == 1) {
-            ecs.deleteEntity(attacker);
+            ctx.ecs.deleteEntity(attacker);
         }
 
         if (stats.stats.projectile == .explosion) {
-            ecs.deleteEntity(attacker);
+            ctx.ecs.deleteEntity(attacker);
         }
     }
 }
