@@ -1,4 +1,4 @@
-#version 330
+#version 430
 
 // https://github.com/raysan5/raylib/blob/master/examples/shaders/resources/shaders/glsl100/bloom.frag
 

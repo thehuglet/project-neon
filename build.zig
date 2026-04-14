@@ -1,4 +1,5 @@
 const std = @import("std");
+const rlz = @import("raylib_zig");
 
 pub fn build(b: *std.Build) void {
     const allocator = std.heap.page_allocator;
@@ -27,6 +28,7 @@ pub fn build(b: *std.Build) void {
     const raylib_dep = b.dependency("raylib_zig", .{
         .target = target,
         .optimize = optimize,
+        .opengl_version = rlz.OpenglVersion.gl_4_3,
     });
 
     const raylib_mod = raylib_dep.module("raylib");
