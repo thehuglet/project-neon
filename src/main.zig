@@ -41,7 +41,11 @@ pub fn main() !void {
         const compute_shader = rl.gl.rlLoadComputeShaderProgram(shader_data);
         rl.unloadFileText(shader_code);
 
-        // int shaderData = rlCompileShader(shaderCode, RL_COMPUTE_SHADER);
+        _ = compute_shader;
+
+        const numParticles = 1024 * 100;
+        const positions = rl.memAlloc(@sizeOf(rl.Vector4) * numParticles);
+        const velocities = rl.memAlloc(@sizeOf(rl.Vector4) * numParticles);
     }
 
     // --- Init context ---
@@ -70,6 +74,10 @@ pub fn main() !void {
             .starfield = try rl.loadShader(
                 null,
                 "assets/shaders/starfield_frag.glsl",
+            ),
+            .particle = try rl.loadShader(
+                "assets/shaders/particle_vertex.glsl",
+                "assets/shaders/particle_frag.glsl",
             ),
         }),
         .game_settings = .{

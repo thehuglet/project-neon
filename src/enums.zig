@@ -8,4 +8,5 @@ pub const ShaderId = enum {
     neon_sprite,
     bloom,
     starfield,
+    particle,
 };
