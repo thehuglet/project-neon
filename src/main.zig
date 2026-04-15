@@ -71,7 +71,7 @@ pub fn main() !void {
             .show_hurtboxes = false,
             .show_hitboxes = false,
         },
-        .particles = particle.init(allocator, prng.random()),
+        .particle_data = particle.init(allocator, prng.random()),
         .player_input_state = .{
             .move_up = false,
             .move_down = false,
@@ -88,14 +88,15 @@ pub fn main() !void {
             .hurt_layers = .empty,
         },
     };
+    defer ctx.deinit();
 
     // --- Init canvas ---
     const canvas: rl.RenderTexture2D = try rl.loadRenderTexture(
         ctx.canvas_size.width,
         ctx.canvas_size.height,
     );
-    rl.setTextureWrap(canvas.texture, rl.TextureWrap.clamp);
-    rl.setTextureFilter(canvas.texture, rl.TextureFilter.bilinear);
+    rl.setTextureWrap(canvas.texture, .clamp);
+    rl.setTextureFilter(canvas.texture, .bilinear);
 
     // --- Init starfield shader ---
     {
@@ -121,6 +122,7 @@ pub fn main() !void {
 
     while (!rl.windowShouldClose()) {
         ctx.clearTemp();
+        particle.compute(&ctx.particle_data);
         ctx.ecs.beginQuery();
 
         // --- Pre-draw update ---
@@ -129,6 +131,7 @@ pub fn main() !void {
         // --- Canvas drawing ---
         rl.beginTextureMode(canvas);
         draw(&ctx);
+        particle.draw(&ctx);
         rl.endTextureMode();
 
         // --- Post-draw update ---

@@ -24,11 +24,11 @@ void main()
     uint index = gl_GlobalInvocationID.x;
 
     // Test upward movement
-    positions[index].y += speed * deltaTime;
+    positions[index].x += speed * deltaTime;
 
     // Test clamp
-    if (positions[index].y > 1.0) positions[index].y = -1.0;
-    if (positions[index].y < -1.0) positions[index].y = 1.0;
+    if (positions[index].x > 1.0) positions[index].x = -1.0;
+    if (positions[index].x < -1.0) positions[index].x = 1.0;
 
     // velocities[index].xy = vec2(0.0, 0.0);
 }

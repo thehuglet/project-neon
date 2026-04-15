@@ -6,6 +6,7 @@ const std = @import("std");
 const rl = @import("raylib");
 const math = @import("math");
 const enums = @import("enums");
+const particle = @import("particle");
 
 pub const CollisionLayer = packed struct {
     player: bool = false,
@@ -59,7 +60,7 @@ pub const Context = struct {
     },
     atlases: std.EnumMap(enums.AtlasId, TextureAtlas),
     shaders: std.EnumMap(enums.ShaderId, rl.Shader),
-    particles: ParticleData,
+    particle_data: ParticleData,
     game_settings: struct {
         show_hurtboxes: bool,
         show_hitboxes: bool,
@@ -81,7 +82,7 @@ pub const Context = struct {
         {
             var iter = self.atlases.iterator();
             while (iter.next()) |entry| {
-                entry.value_ptr.deinit();
+                entry.value.deinit();
             }
         }
 
@@ -89,7 +90,7 @@ pub const Context = struct {
         {
             var iter = self.shaders.iterator();
             while (iter.next()) |entry| {
-                rl.unloadShader(entry.value_ptr.*);
+                rl.unloadShader(entry.value.*);
             }
         }
 
@@ -98,6 +99,9 @@ pub const Context = struct {
         self.temp.hurt_positions.deinit(self.allocator);
         self.temp.hurt_radii.deinit(self.allocator);
         self.temp.hurt_layers.deinit(self.allocator);
+
+        // Particles
+        particle.deinit(self.particle_data);
     }
 
     pub fn clearTemp(self: *Context) void {

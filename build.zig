@@ -6,14 +6,14 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // ------ Options ------
+    // --- Options ---
     const skip_atlas_gen = b.option(
         bool,
         "skip-atlas-gen",
         "Skip texture atlas generation",
     ) orelse false;
 
-    // ------ Atlas generation ------
+    // --- Atlas generation ---
     const run_atlas_gen_cmd = b.addSystemCommand(&.{
         "cargo",
         "run",
@@ -24,7 +24,7 @@ pub fn build(b: *std.Build) void {
     });
     run_atlas_gen_cmd.step.name = "Generating texture atlases";
 
-    // ------- raylib-zig dependency ------
+    // --- raylib-zig dependency ---
     const raylib_dep = b.dependency("raylib_zig", .{
         .target = target,
         .optimize = optimize,
@@ -35,7 +35,7 @@ pub fn build(b: *std.Build) void {
     // const raygui_mod = raylib_dep.module("raygui");
     const raylib_artifact = raylib_dep.artifact("raylib");
 
-    // ------ All-to-all global module mappings ------
+    // --- All-to-all global module mappings ---
     var modules = std.ArrayList(struct { name: []const u8, mod: *std.Build.Module }).empty;
     defer modules.deinit(allocator);
 

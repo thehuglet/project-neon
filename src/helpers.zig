@@ -106,3 +106,7 @@ pub fn playerInputDirection(inputs: *const PlayerInputState) rl.Vector2 {
     }
     return rl.Vector2.normalize(input_dir);
 }
+
+pub fn assertUniformLoc(shader: u32, name: [:0]const u8, expected: i32) void {
+    std.debug.assert(rl.gl.rlGetLocationUniform(shader, name) == expected);
+}
