@@ -36,7 +36,7 @@ pub fn main() !void {
         .msaa_4x_hint = true,
     });
     rl.initWindow(1600, 900, "Project Neon");
-    rl.setTargetFPS(144);
+    rl.setTargetFPS(0);
     defer rl.closeWindow();
 
     // --- Init context ---
@@ -113,20 +113,20 @@ pub fn main() !void {
         rl.setShaderValue(shader, resolution_loc, &resolution, .vec2);
     }
 
-    // // --- Init particles ortho matrix ---
-    // {
-    //     const shader = ctx.shaders.get(.particle).?;
-    //     const ortho: rl.Matrix = rl.math.matrixOrtho(-1.0, 1.0, -1.0, 1.0, 0.0, 10.0);
-    //     const projection_loc: i32 = rl.getShaderLocation(shader, "projection");
-    //     rl.setShaderValueMatrix(shader, projection_loc, ortho);
-    // }
+    // --- Init particles ortho matrix ---
+    {
+        const shader = ctx.shaders.get(.particle).?;
+        const ortho: rl.Matrix = rl.math.matrixOrtho(-1.0, 1.0, -1.0, 1.0, 0.0, 10.0);
+        const projection_loc: i32 = rl.getShaderLocation(shader, "projection");
+        rl.setShaderValueMatrix(shader, projection_loc, ortho);
+    }
 
     // --- Spawn player ---
     _ = entity.player.spawn(&ctx, .init(400.0, 400.0));
 
     while (!rl.windowShouldClose()) {
         ctx.clearTemp();
-        // particle.compute(&ctx.particle_data);
+        particle.compute(&ctx.particle_data);
         ctx.ecs.beginQuery();
 
         // --- Pre-draw update ---
@@ -134,8 +134,9 @@ pub fn main() !void {
 
         // --- Canvas drawing ---
         rl.beginTextureMode(canvas);
-        draw(&ctx);
-        // particle.draw(&ctx);
+        // draw(&ctx);
+        rl.clearBackground(.black);
+        particle.draw(&ctx);
         rl.endTextureMode();
 
         // --- Post-draw update ---
@@ -178,8 +179,14 @@ pub fn main() !void {
             );
 
             rl.endShaderMode();
-
             rl.drawFPS(0, 0);
+            // Debug particle counter
+            // {
+            //     var buf: [64]u8 = undefined;
+            //     const text = std.fmt.bufPrintZ(&buf, "PARTICLES: {}", .{ctx.particle_data.alive_count}) catch unreachable;
+
+            //     rl.drawText(text, 0, 22, 20, .white);
+            // }
             rl.endDrawing();
         }
     }

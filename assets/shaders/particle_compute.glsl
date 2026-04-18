@@ -20,6 +20,10 @@ layout(std430, binding = 4) buffer AliveCount {
     uint aliveCount;
 };
 
+layout(std430, binding = 6) readonly buffer PrevAliveCount {
+    uint previousAliveCount;
+};
+
 layout(location = 0) uniform float deltaTime;
 layout(location = 1) uniform float speed;
 
@@ -30,13 +34,17 @@ layout(location = 1) uniform float speed;
 void main() {
     uint idx = gl_GlobalInvocationID.x;
 
+    if (idx >= previousAliveCount) {
+        return;
+    }
+
     float newLifetimeSec = lifetime_sec(idx) - deltaTime;
 
-    if (lifetime_sec(idx) > 0.0) {
-        // Particle is alive in this branch
+    if (newLifetimeSec > 0.0) {
+        // Particle is alive
         uint outIdx = atomicAdd(aliveCount, 1);
 
-        float posX = pos(idx).x;
+        float posX = pos(idx).x + 0.000000001 * idx * deltaTime;
         float posY = pos(idx).y;
         nextData_0[outIdx] = vec4(posX, posY, newLifetimeSec, 0.0);
         nextData_1[outIdx] = currentData_1[idx];

@@ -12,10 +12,26 @@ layout(std430, binding = 5) buffer DispatchIndirect {
     uint numGroupsZ;
 };
 
+layout(std430, binding = 6) buffer PrevAliveCount {
+    uint prevAliveCount;
+};
+
+layout(std430, binding = 7) buffer DrawIndirect {
+    uint count;
+    uint instanceCount;
+    uint first;
+    uint baseInstance;
+};
+
 void main() {
-    // Compute workgroups needed for next frame's simulation
-    // (assuming local_size_x = 1024 in the first shader)
     numGroupsX = (aliveCount + 1023) / 1024;
     numGroupsY = 1;
     numGroupsZ = 1;
+    prevAliveCount = aliveCount;
+
+    // indirect drawing related
+    count = 6;
+    instanceCount = aliveCount;
+    first = 0;
+    baseInstance = 0;
 }

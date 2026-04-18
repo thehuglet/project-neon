@@ -98,6 +98,9 @@ pub fn build(b: *std.Build) void {
 
     const raylib_src_dep = raylib_zig_dep.builder.dependency("raylib", .{});
     const glad_include = raylib_src_dep.path("src/external").getPath(b);
+    for (modules.items) |item| {
+        item.mod.addIncludePath(.{ .cwd_relative = glad_include });
+    }
     exe.root_module.addIncludePath(.{ .cwd_relative = glad_include });
 
     exe.root_module.link_libc = true;
