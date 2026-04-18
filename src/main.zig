@@ -16,6 +16,10 @@ const debug = @import("debug.zig");
 const particle = @import("particle");
 
 pub fn main() !void {
+    var threaded_io: std.Io.Threaded = .init_single_threaded;
+    const io = threaded_io.io();
+    defer threaded_io.deinit();
+    const time_now = std.Io.Clock.now(.awake, io).toNanoseconds();
     const allocator = switch (builtin.mode) {
         .Debug, .ReleaseSafe => blk: {
             var gpa = std.heap.DebugAllocator(.{}).init;
@@ -23,7 +27,7 @@ pub fn main() !void {
         },
         .ReleaseFast, .ReleaseSmall => std.heap.c_allocator,
     };
-    const rng_seed: u64 = @intCast(std.time.nanoTimestamp());
+    const rng_seed: u64 = @intCast(time_now);
     var prng = std.Random.DefaultPrng.init(rng_seed);
 
     // --- Init raylib ---
@@ -109,20 +113,20 @@ pub fn main() !void {
         rl.setShaderValue(shader, resolution_loc, &resolution, .vec2);
     }
 
-    // --- Init particles ortho matrix ---
-    {
-        const shader = ctx.shaders.get(.particle).?;
-        const ortho: rl.Matrix = rl.math.matrixOrtho(-1.0, 1.0, -1.0, 1.0, 0.0, 10.0);
-        const projection_loc: i32 = rl.getShaderLocation(shader, "projection");
-        rl.setShaderValueMatrix(shader, projection_loc, ortho);
-    }
+    // // --- Init particles ortho matrix ---
+    // {
+    //     const shader = ctx.shaders.get(.particle).?;
+    //     const ortho: rl.Matrix = rl.math.matrixOrtho(-1.0, 1.0, -1.0, 1.0, 0.0, 10.0);
+    //     const projection_loc: i32 = rl.getShaderLocation(shader, "projection");
+    //     rl.setShaderValueMatrix(shader, projection_loc, ortho);
+    // }
 
     // --- Spawn player ---
     _ = entity.player.spawn(&ctx, .init(400.0, 400.0));
 
     while (!rl.windowShouldClose()) {
         ctx.clearTemp();
-        particle.compute(&ctx.particle_data);
+        // particle.compute(&ctx.particle_data);
         ctx.ecs.beginQuery();
 
         // --- Pre-draw update ---
@@ -131,7 +135,7 @@ pub fn main() !void {
         // --- Canvas drawing ---
         rl.beginTextureMode(canvas);
         draw(&ctx);
-        particle.draw(&ctx);
+        // particle.draw(&ctx);
         rl.endTextureMode();
 
         // --- Post-draw update ---
@@ -184,7 +188,7 @@ pub fn main() !void {
 fn update(ctx: *Context) void {
     // --- Temp enemy spawning ---
     if (rl.isKeyPressed(.v)) {
-        for (0..200) |_| {
+        for (0..1) |_| {
             _ = entity.roto_charger.spawn(&ctx.ecs, ctx.rng, ctx.atlases.get(.roto).?, .{ .x = 100, .y = 200 });
         }
     }
@@ -201,7 +205,7 @@ fn update(ctx: *Context) void {
     system.updateDash(ctx);
     system.updateDashTrailGhost(ctx);
     system.updateLifetime(ctx);
-    system.chaseEntity(ctx);
+    // system.chaseEntity(ctx);
     system.spinCosmetic(ctx);
     system.updateDamageFlash(ctx);
     system.updateRingOverTLifetime(ctx);

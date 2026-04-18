@@ -2,7 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 /// Minimum supported version of Zig
-const min_ver = "0.15.1";
+const min_ver = "0.16.0";
 
 const emccOutputDir = "zig-out" ++ std.fs.path.sep_str ++ "htmlout" ++ std.fs.path.sep_str;
 const emccOutputFile = "index.html";

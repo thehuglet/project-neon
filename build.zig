@@ -1,5 +1,6 @@
 const std = @import("std");
 const rlz = @import("raylib_zig");
+const builtin = @import("builtin");
 
 pub fn build(b: *std.Build) void {
     const allocator = std.heap.page_allocator;
@@ -25,15 +26,15 @@ pub fn build(b: *std.Build) void {
     run_atlas_gen_cmd.step.name = "Generating texture atlases";
 
     // --- raylib-zig dependency ---
-    const raylib_dep = b.dependency("raylib_zig", .{
+    const raylib_zig_dep = b.dependency("raylib_zig", .{
         .target = target,
         .optimize = optimize,
         .opengl_version = rlz.OpenglVersion.gl_4_3,
     });
 
-    const raylib_mod = raylib_dep.module("raylib");
+    const raylib_mod = raylib_zig_dep.module("raylib");
     // const raygui_mod = raylib_dep.module("raygui");
-    const raylib_artifact = raylib_dep.artifact("raylib");
+    const raylib_artifact = raylib_zig_dep.artifact("raylib");
 
     // --- All-to-all global module mappings ---
     var modules = std.ArrayList(struct { name: []const u8, mod: *std.Build.Module }).empty;
@@ -88,13 +89,23 @@ pub fn build(b: *std.Build) void {
     if (!skip_atlas_gen) {
         exe.step.dependOn(&run_atlas_gen_cmd.step);
     }
-    exe.linkLibrary(raylib_artifact);
 
+    exe.root_module.linkLibrary(raylib_artifact);
     for (modules.items) |item| {
         exe.root_module.addImport(item.name, item.mod);
     }
     exe.root_module.addImport("raylib", raylib_mod);
-    // exe.root_module.addImport("raygui", raygui_mod);
+
+    const raylib_src_dep = raylib_zig_dep.builder.dependency("raylib", .{});
+    const glad_include = raylib_src_dep.path("src/external").getPath(b);
+    exe.root_module.addIncludePath(.{ .cwd_relative = glad_include });
+
+    exe.root_module.link_libc = true;
+    if (builtin.os.tag == .windows) {
+        exe.root_module.linkSystemLibrary("opengl32", .{});
+    } else {
+        exe.root_module.linkSystemLibrary("GL", .{});
+    }
 
     b.installArtifact(exe);
 

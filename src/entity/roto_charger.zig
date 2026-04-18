@@ -22,7 +22,7 @@ pub fn spawn(ecs: *ECS, rng: std.Random, atlas: TextureAtlas, pos: rl.Vector2) E
     });
     ecs.addComponent(entity_id, c.Movement{
         .max_speed = helpers.randomFloatRange(rng, 1000, 1200.0),
-        .accel_time = helpers.randomFloatRange(rng, 1.3, 1.0),
+        .accel_time = helpers.randomFloatRange(rng, 1.8, 2.0),
     });
     ecs.addComponent(entity_id, c.Health{
         .max_health = max_hp,
@@ -43,7 +43,7 @@ pub fn spawn(ecs: *ECS, rng: std.Random, atlas: TextureAtlas, pos: rl.Vector2) E
     });
     ecs.addComponent(entity_id, c.ChaseEntity{
         .turn_rate = helpers.randomFloatRange(rng, 10.0, 14.0),
-        .accel_impact_on_turn_rate = 0.3,
+        .accel_impact_on_turn_rate = 0.8,
     });
     ecs.addComponent(entity_id, c.Hurtbox{
         .radius = 38.0,

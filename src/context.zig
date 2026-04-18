@@ -101,7 +101,7 @@ pub const Context = struct {
         self.temp.hurt_layers.deinit(self.allocator);
 
         // Particles
-        particle.deinit(self.particle_data);
+        // particle.deinit(self.particle_data);
     }
 
     pub fn clearTemp(self: *Context) void {

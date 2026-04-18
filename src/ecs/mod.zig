@@ -7,64 +7,35 @@ const EntityIdPool = @import("entity_id_pool.zig").EntityIdPool;
 const SparseComponentSet = @import("sparse_component_set.zig").SparseComponentSet;
 
 const ComponentTag = blk: {
-    var enum_fields: [ComponentRegistry.len]std.builtin.Type.EnumField = undefined;
+    var field_names: [ComponentRegistry.len][]const u8 = undefined;
+    var field_values: [ComponentRegistry.len]u8 = undefined;
     for (ComponentRegistry, 0..) |entry, i| {
-        enum_fields[i] = .{
-            .name = entry.field_name,
-            .value = i,
-        };
+        field_names[i] = entry.field_name;
+        field_values[i] = @intCast(i);
     }
-    break :blk @Type(.{
-        .@"enum" = .{
-            .tag_type = u8,
-            .fields = enum_fields[0..],
-            .decls = &.{},
-            .is_exhaustive = true,
-        },
-    });
+    break :blk @Enum(u8, .exhaustive, &field_names, &field_values);
 };
 
 const ComponentUnion = blk: {
     const field_count = ComponentRegistry.len;
-    var fields: [field_count]std.builtin.Type.UnionField = undefined;
+    var field_names: [field_count][]const u8 = undefined;
+    var field_types: [field_count]type = undefined;
     for (ComponentRegistry, 0..) |entry, i| {
-        fields[i] = .{
-            .name = entry.field_name,
-            .type = entry.component_type,
-            .alignment = @alignOf(entry.component_type),
-        };
+        field_names[i] = entry.field_name;
+        field_types[i] = entry.component_type;
     }
-    break :blk @Type(.{
-        .@"union" = .{
-            .layout = .auto,
-            .tag_type = ComponentTag,
-            .fields = fields[0..],
-            .decls = &.{},
-        },
-    });
+    break :blk @Union(.auto, ComponentTag, &field_names, &field_types, &@splat(.{}));
 };
 
 const ComponentState = blk: {
     const field_count = ComponentRegistry.len;
-    var fields: [field_count]std.builtin.Type.StructField = undefined;
+    var field_names: [field_count][]const u8 = undefined;
+    var field_types: [field_count]type = undefined;
     for (ComponentRegistry, 0..) |entry, i| {
-        const FieldType = SparseComponentSet(entry.component_type);
-        fields[i] = .{
-            .name = entry.field_name,
-            .type = FieldType,
-            .default_value_ptr = null,
-            .is_comptime = false,
-            .alignment = @alignOf(FieldType),
-        };
+        field_names[i] = entry.field_name;
+        field_types[i] = SparseComponentSet(entry.component_type);
     }
-    break :blk @Type(.{
-        .@"struct" = .{
-            .layout = .auto,
-            .fields = fields[0..],
-            .decls = &.{},
-            .is_tuple = false,
-        },
-    });
+    break :blk @Struct(.auto, null, &field_names, &field_types, &@splat(.{}));
 };
 
 const Operation = union(enum) {
