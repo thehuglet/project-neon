@@ -9,6 +9,7 @@ pub fn playerMovement(ctx: *Context) void {
     const dt: f32 = rl.getFrameTime();
 
     var query = ctx.ecs.query(.{
+        c.Player,
         c.Motion,
         c.Movement,
     });
