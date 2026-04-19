@@ -198,7 +198,7 @@ pub fn draw(data: *ParticleData, particle_shader: rl.Shader) void {
     _ = rl.gl.rlEnableVertexArray(data.vao);
 
     c_glad.glBindBuffer(c_glad.GL_DRAW_INDIRECT_BUFFER, data.draw_indirect_buffer);
-    c_glad.glDrawArraysIndirect(c_glad.GL_TRIANGLES, @ptrFromInt(0));
+    c_glad.glDrawArraysIndirect(c_glad.GL_TRIANGLES, null);
 
     rl.gl.rlDisableVertexArray();
     rl.endShaderMode();
