@@ -55,20 +55,20 @@ pub fn main() !void {
         }),
         .shaders = .init(.{
             .neon_sprite = try rl.loadShader(
-                "assets/shaders/neon_sprite_vertex.glsl",
-                "assets/shaders/neon_sprite_frag.glsl",
+                "assets/shaders/neon_sprite.vert",
+                "assets/shaders/neon_sprite.frag",
             ),
             .bloom = try rl.loadShader(
                 null,
-                "assets/shaders/bloom_frag.glsl",
+                "assets/shaders/bloom.frag",
             ),
             .starfield = try rl.loadShader(
                 null,
-                "assets/shaders/starfield_frag.glsl",
+                "assets/shaders/starfield.frag",
             ),
             .particle = try rl.loadShader(
-                "assets/shaders/particle_vertex.glsl",
-                "assets/shaders/particle_frag.glsl",
+                "assets/shaders/particle.vert",
+                "assets/shaders/particle.frag",
             ),
         }),
         .game_settings = .{
