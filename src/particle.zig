@@ -15,8 +15,9 @@ const DrawCmdIndirect = struct {
 };
 
 pub const ParticleData = struct {
-    vao: u32,
     max_particles: u32,
+
+    vao: u32,
     atomic_counter: u32,
     // alive_count: u32,
     prev_alive_buffer: u32,
@@ -25,10 +26,12 @@ pub const ParticleData = struct {
     // current_alive_index: u8,
     compute_shader: u32,
     post_compute_shader: u32,
-    ssbo_0_set_0: u32,
-    ssbo_1_set_0: u32,
-    ssbo_0_set_1: u32,
-    ssbo_1_set_1: u32,
+    packed_ssbo_0: [2]u32,
+    packed_ssbo_1: [2]u32,
+    // ssbo_0_set_0: u32,
+    // ssbo_1_set_0: u32,
+    // ssbo_0_set_1: u32,
+    // ssbo_1_set_1: u32,
     indirect_buffer: u32,
     current_set: u8,
     draw_indirect_buffer: u32,
@@ -55,7 +58,7 @@ pub fn init(allocator: std.mem.Allocator, rng: std.Random) ParticleData {
         break :blk program;
     };
 
-    const max_particles: u32 = 1024 * 1000 * 8;
+    const max_particles: u32 = 1024 * 1000;
 
     const ssbo_0_data: []rl.Vector4 = allocator.alloc(rl.Vector4, max_particles) catch @panic("OOM");
     defer allocator.free(ssbo_0_data);
@@ -66,17 +69,25 @@ pub fn init(allocator: std.mem.Allocator, rng: std.Random) ParticleData {
     for (0..max_particles) |i| {
         const x_pos: f32 = helpers.randomFloatRange(rng, -1.0, 1.0);
         const y_pos: f32 = helpers.randomFloatRange(rng, -1.0, 0.8);
-        const lifetime_sec: f32 = helpers.randomFloatRange(rng, 6.0, 8.0);
-        // const lifetime_sec: f32 = 0.0;
+        const lifetime_sec: f32 = helpers.randomFloatRange(rng, 0.3, 5.0);
 
         ssbo_0_data[i] = rl.Vector4.init(x_pos, y_pos, lifetime_sec, 0.0);
         ssbo_1_data[i] = rl.Vector4.init(0.0, 0.0, 0.0, 0.0);
     }
 
-    const ssbo_0_set_0 = rl.gl.rlLoadShaderBuffer(max_particles * @sizeOf(rl.Vector4), ssbo_0_data.ptr, rl.gl.rl_dynamic_copy);
-    const ssbo_1_set_0 = rl.gl.rlLoadShaderBuffer(max_particles * @sizeOf(rl.Vector4), ssbo_1_data.ptr, rl.gl.rl_dynamic_copy);
-    const ssbo_0_set_1 = rl.gl.rlLoadShaderBuffer(max_particles * @sizeOf(rl.Vector4), ssbo_0_data.ptr, rl.gl.rl_dynamic_copy);
-    const ssbo_1_set_1 = rl.gl.rlLoadShaderBuffer(max_particles * @sizeOf(rl.Vector4), ssbo_1_data.ptr, rl.gl.rl_dynamic_copy);
+    const packed_ssbo_0 = [_]u32{
+        rl.gl.rlLoadShaderBuffer(max_particles * @sizeOf(rl.Vector4), ssbo_0_data.ptr, rl.gl.rl_dynamic_copy),
+        rl.gl.rlLoadShaderBuffer(max_particles * @sizeOf(rl.Vector4), ssbo_0_data.ptr, rl.gl.rl_dynamic_copy),
+    };
+    const packed_ssbo_1 = [_]u32{
+        rl.gl.rlLoadShaderBuffer(max_particles * @sizeOf(rl.Vector4), ssbo_1_data.ptr, rl.gl.rl_dynamic_copy),
+        rl.gl.rlLoadShaderBuffer(max_particles * @sizeOf(rl.Vector4), ssbo_1_data.ptr, rl.gl.rl_dynamic_copy),
+    };
+
+    // const ssbo_0_set_0 = rl.gl.rlLoadShaderBuffer(max_particles * @sizeOf(rl.Vector4), ssbo_0_data.ptr, rl.gl.rl_dynamic_copy);
+    // const ssbo_1_set_0 = rl.gl.rlLoadShaderBuffer(max_particles * @sizeOf(rl.Vector4), ssbo_1_data.ptr, rl.gl.rl_dynamic_copy);
+    // const ssbo_0_set_1 = rl.gl.rlLoadShaderBuffer(max_particles * @sizeOf(rl.Vector4), ssbo_0_data.ptr, rl.gl.rl_dynamic_copy);
+    // const ssbo_1_set_1 = rl.gl.rlLoadShaderBuffer(max_particles * @sizeOf(rl.Vector4), ssbo_1_data.ptr, rl.gl.rl_dynamic_copy);
 
     const atomic_counter = rl.gl.rlLoadShaderBuffer(@sizeOf(u32), &zero, rl.gl.rl_dynamic_copy);
 
@@ -126,10 +137,8 @@ pub fn init(allocator: std.mem.Allocator, rng: std.Random) ParticleData {
         // .alive_fences = [2]c_glad.GLsync{ null, null },
         .compute_shader = compute_shader,
         .post_compute_shader = post_compute_shader,
-        .ssbo_0_set_0 = ssbo_0_set_0,
-        .ssbo_1_set_0 = ssbo_1_set_0,
-        .ssbo_0_set_1 = ssbo_0_set_1,
-        .ssbo_1_set_1 = ssbo_1_set_1,
+        .packed_ssbo_0 = packed_ssbo_0,
+        .packed_ssbo_1 = packed_ssbo_1,
         .indirect_buffer = indirect_buffer,
         .current_set = 0,
         // .current_alive_index = 0,
@@ -162,10 +171,15 @@ pub fn compute(data: *ParticleData) void {
     const dt: f32 = rl.getFrameTime();
     const speed: f32 = 1.0;
 
-    const current_set_0 = if (data.current_set == 0) data.ssbo_0_set_0 else data.ssbo_0_set_1;
-    const current_set_1 = if (data.current_set == 0) data.ssbo_1_set_0 else data.ssbo_1_set_1;
-    const next_set_0 = if (data.current_set == 0) data.ssbo_0_set_1 else data.ssbo_0_set_0;
-    const next_set_1 = if (data.current_set == 0) data.ssbo_1_set_1 else data.ssbo_1_set_0;
+    const current_packed_ssbo_0 = data.packed_ssbo_0[data.current_set];
+    const current_packed_ssbo_1 = data.packed_ssbo_1[data.current_set];
+    const next_packed_ssbo_0 = data.packed_ssbo_0[1 - data.current_set];
+    const next_packed_ssbo_1 = data.packed_ssbo_1[1 - data.current_set];
+
+    // const current_set_0 = if (data.current_set == 0) data.ssbo_0_set_0 else data.ssbo_0_set_1;
+    // const current_set_1 = if (data.current_set == 0) data.ssbo_1_set_0 else data.ssbo_1_set_1;
+    // const next_set_0 = if (data.current_set == 0) data.ssbo_0_set_1 else data.ssbo_0_set_0;
+    // const next_set_1 = if (data.current_set == 0) data.ssbo_1_set_1 else data.ssbo_1_set_0;
 
     rl.gl.rlUpdateShaderBuffer(data.atomic_counter, &zero, @sizeOf(u32), 0);
 
@@ -179,10 +193,10 @@ pub fn compute(data: *ParticleData) void {
     rl.gl.rlSetUniform(0, &dt, @intFromEnum(rl.ShaderUniformDataType.float), 1);
     rl.gl.rlSetUniform(1, &speed, @intFromEnum(rl.ShaderUniformDataType.float), 1);
 
-    rl.gl.rlBindShaderBuffer(current_set_0, 0);
-    rl.gl.rlBindShaderBuffer(current_set_1, 1);
-    rl.gl.rlBindShaderBuffer(next_set_0, 2);
-    rl.gl.rlBindShaderBuffer(next_set_1, 3);
+    rl.gl.rlBindShaderBuffer(current_packed_ssbo_0, 0);
+    rl.gl.rlBindShaderBuffer(current_packed_ssbo_1, 1);
+    rl.gl.rlBindShaderBuffer(next_packed_ssbo_0, 2);
+    rl.gl.rlBindShaderBuffer(next_packed_ssbo_1, 3);
     rl.gl.rlBindShaderBuffer(data.atomic_counter, 4);
     rl.gl.rlBindShaderBuffer(data.prev_alive_buffer, 6);
     rl.gl.rlBindShaderBuffer(data.draw_indirect_buffer, 7);
@@ -246,31 +260,23 @@ pub fn compute(data: *ParticleData) void {
     // std.debug.print("{}\n", .{data.compute_shader});
 }
 
-pub fn draw(ctx: *Context) void {
-    const shader = ctx.shaders.get(.particle).?;
+pub fn draw(data: *ParticleData, particle_shader: rl.Shader) void {
     const particle_scale: f32 = 1.0;
 
-    // Bind SSBOs for the current particle data set (unchanged)
-    const cur0 = if (ctx.particle_data.current_set == 0)
-        ctx.particle_data.ssbo_0_set_0
-    else
-        ctx.particle_data.ssbo_0_set_1;
-    const cur1 = if (ctx.particle_data.current_set == 0)
-        ctx.particle_data.ssbo_1_set_0
-    else
-        ctx.particle_data.ssbo_1_set_1;
+    const current_packed_ssbo_0 = data.packed_ssbo_0[data.current_set];
+    const current_packed_ssbo_1 = data.packed_ssbo_1[data.current_set];
 
-    rl.beginShaderMode(shader);
-    const scale_loc = rl.getShaderLocation(shader, "particleScale");
-    rl.setShaderValue(shader, scale_loc, &particle_scale, rl.ShaderUniformDataType.float);
+    rl.beginShaderMode(particle_shader);
 
-    rl.gl.rlBindShaderBuffer(cur0, 0);
-    rl.gl.rlBindShaderBuffer(cur1, 1);
+    const scale_loc = rl.getShaderLocation(particle_shader, "particleScale");
+    rl.setShaderValue(particle_shader, scale_loc, &particle_scale, rl.ShaderUniformDataType.float);
 
-    _ = rl.gl.rlEnableVertexArray(ctx.particle_data.vao);
+    rl.gl.rlBindShaderBuffer(current_packed_ssbo_0, 0);
+    rl.gl.rlBindShaderBuffer(current_packed_ssbo_1, 1);
 
-    // Indirect draw – the instance count comes from the GPU buffer
-    c_glad.glBindBuffer(c_glad.GL_DRAW_INDIRECT_BUFFER, ctx.particle_data.draw_indirect_buffer);
+    _ = rl.gl.rlEnableVertexArray(data.vao);
+
+    c_glad.glBindBuffer(c_glad.GL_DRAW_INDIRECT_BUFFER, data.draw_indirect_buffer);
     c_glad.glDrawArraysIndirect(c_glad.GL_TRIANGLES, @ptrFromInt(0));
 
     rl.gl.rlDisableVertexArray();

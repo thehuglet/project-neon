@@ -136,7 +136,7 @@ pub fn main() !void {
         rl.beginTextureMode(canvas);
         // draw(&ctx);
         rl.clearBackground(.black);
-        particle.draw(&ctx);
+        particle.draw(&ctx.particle_data, ctx.shaders.get(.particle).?);
         rl.endTextureMode();
 
         // --- Post-draw update ---
