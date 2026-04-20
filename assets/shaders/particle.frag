@@ -1,10 +1,13 @@
 #version 430
+#extension GL_ARB_bindless_texture : require
 
-in vec4 fragColor;
+in flat uvec2 fragHandle;
+in vec2 fragUV;
+
 out vec4 finalColor;
 
 void main()
 {
-    // There is only one thing to do.
-    finalColor = fragColor;
+    sampler2D tex = sampler2D(fragHandle);
+    finalColor = texture(tex, fragUV);
 }

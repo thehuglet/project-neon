@@ -97,11 +97,20 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("raylib", raylib_mod);
 
     const raylib_src_dep = raylib_zig_dep.builder.dependency("raylib", .{});
-    const glad_include = raylib_src_dep.path("src/external").getPath(b);
+
+    // --- raylib src headers ---
+    const raylib_src_include = raylib_src_dep.path("src").getPath(b);
     for (modules.items) |item| {
-        item.mod.addIncludePath(.{ .cwd_relative = glad_include });
+        item.mod.addIncludePath(.{ .cwd_relative = raylib_src_include });
     }
-    exe.root_module.addIncludePath(.{ .cwd_relative = glad_include });
+    exe.root_module.addIncludePath(.{ .cwd_relative = raylib_src_include });
+
+    // --- raylib external headers ---
+    const external_include = raylib_src_dep.path("src/external").getPath(b);
+    for (modules.items) |item| {
+        item.mod.addIncludePath(.{ .cwd_relative = external_include });
+    }
+    exe.root_module.addIncludePath(.{ .cwd_relative = external_include });
 
     exe.root_module.link_libc = true;
     if (builtin.os.tag == .windows) {

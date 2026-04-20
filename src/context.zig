@@ -1,12 +1,22 @@
 const ECS = @import("ecs").ECS;
 const EntityId = @import("ecs").EntityId;
 const ParticleData = @import("particle").ParticleData;
+const GlGetTextureHandleFnPtr = @import("helpers").GlGetTextureHandleFnPtr;
+const GlMakeTextureHandleResidentFnPtr = @import("helpers").GlMakeTextureHandleResidentFnPtr;
 
 const std = @import("std");
 const rl = @import("raylib");
 const math = @import("math");
 const enums = @import("enums");
 const particle = @import("particle");
+
+var glGetHandle: GlGetTextureHandleFnPtr = undefined;
+var glMakeResident: GlMakeTextureHandleResidentFnPtr = undefined;
+
+pub fn setupGlBindlessFnPtrs(get: GlGetTextureHandleFnPtr, make: GlMakeTextureHandleResidentFnPtr) void {
+    glGetHandle = get;
+    glMakeResident = make;
+}
 
 pub const CollisionLayer = packed struct {
     player: bool = false,
@@ -21,17 +31,28 @@ pub const TextureAtlas = struct {
     texture: rl.Texture2D,
     cell_width: i32,
     cell_height: i32,
+    bindless_handle: u64,
+    cols: i32,
+    rows: i32,
 
     pub fn init(path: [:0]const u8, cell_width: i32, cell_height: i32) TextureAtlas {
+        const tex = rl.loadTexture(path) catch |err| {
+            std.debug.panic("Error loading atlas: {s}, (error: {})", .{ path, err });
+        };
+        const handle = glGetHandle(tex.id);
+        glMakeResident(handle);
+        const tex_width: i32 = @intCast(tex.width);
+        const tex_height: i32 = @intCast(tex.height);
+
+        const cols: i32 = @divTrunc(tex_width, cell_width);
+        const rows: i32 = @divTrunc(tex_height, cell_height);
         return .{
-            .texture = rl.loadTexture(path) catch |err| {
-                std.debug.panic(
-                    "Error loading atlas: {s}, (error: {})",
-                    .{ path, err },
-                );
-            },
+            .texture = tex,
             .cell_width = cell_width,
             .cell_height = cell_height,
+            .bindless_handle = handle,
+            .cols = cols,
+            .rows = rows,
         };
     }
 
@@ -101,7 +122,7 @@ pub const Context = struct {
         self.temp.hurt_layers.deinit(self.allocator);
 
         // Particles
-        // particle.deinit(self.particle_data);
+        particle.deinit(self.particle_data);
     }
 
     pub fn clearTemp(self: *Context) void {

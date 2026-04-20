@@ -2,24 +2,16 @@
 
 layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 
-layout(std430, binding = 0) readonly buffer CurrentParticleState_0 {
-    vec4 currentState_0[];
-};
-layout(std430, binding = 1) readonly buffer CurrentParticleState_1 {
-    vec4 currentState_1[];
-};
-layout(std430, binding = 2) buffer NextParticleState_0 {
-    vec4 nextState_0[];
-};
-layout(std430, binding = 3) buffer NextParticleState_1 {
-    vec4 nextState_1[];
-};
-layout(std430, binding = 4) buffer AliveCount {
-    uint aliveCount;
-};
-layout(std430, binding = 5) readonly buffer PrevAliveCount {
-    uint prevAliveCount;
-};
+layout(std430, binding = 2) buffer AliveCount { uint aliveCount; };
+layout(std430, binding = 3) readonly buffer PrevAliveCount { uint prevAliveCount; };
+layout(std430, binding = 4) readonly buffer CurrentParticleState_0 { vec4 currentState_0[]; };
+layout(std430, binding = 5) readonly buffer CurrentParticleState_1 { vec4 currentState_1[]; };
+layout(std430, binding = 6) readonly buffer CurrentParticleState_2 { vec4 currentState_2[]; };
+layout(std430, binding = 7) readonly buffer CurrentParticleState_3 { vec4 currentState_3[]; };
+layout(std430, binding = 8) buffer NextParticleState_0 { vec4 nextState_0[]; };
+layout(std430, binding = 9) buffer NextParticleState_1 { vec4 nextState_1[]; };
+layout(std430, binding = 10) buffer NextParticleState_2 { vec4 nextState_2[]; };
+layout(std430, binding = 11) buffer NextParticleState_3 { vec4 nextState_3[]; };
 
 layout(location = 0) uniform float deltaTime;
 
@@ -40,9 +32,11 @@ void main() {
         // Particle is alive
         uint outIndex = atomicAdd(aliveCount, 1);
 
-        float posX = pos(index).x + 0.000000001 * index * deltaTime;
+        float posX = pos(index).x + 0.001 * index * deltaTime;
         float posY = pos(index).y;
         nextState_0[outIndex] = vec4(posX, posY, newLifetimeSec, 0.0);
         nextState_1[outIndex] = currentState_1[index];
+        nextState_2[outIndex] = currentState_2[index];
+        nextState_3[outIndex] = currentState_3[index];
     }
 }

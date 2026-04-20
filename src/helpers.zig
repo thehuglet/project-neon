@@ -4,6 +4,31 @@ const std = @import("std");
 const rl = @import("raylib");
 const c = @import("component");
 
+pub const GlGetTextureHandleFnPtr = *const fn (c_uint) callconv(.c) u64;
+pub const GlMakeTextureHandleResidentFnPtr = *const fn (u64) callconv(.c) void;
+
+pub fn load_fn_bindless_get_texture_handle() GlGetTextureHandleFnPtr {
+    const get_handle_ptr = rl.gl.rlGetProcAddress("glGetTextureHandleARB") orelse
+        rl.gl.rlGetProcAddress("glGetTextureHandle");
+
+    if (get_handle_ptr == null) {
+        @panic("Bindless textures not supported by GPU/driver");
+    }
+
+    return @ptrCast(get_handle_ptr.?);
+}
+
+pub fn load_fn_bindless_make_texture_handle_resident() GlMakeTextureHandleResidentFnPtr {
+    const make_resident_ptr = rl.gl.rlGetProcAddress("glMakeTextureHandleResidentARB") orelse
+        rl.gl.rlGetProcAddress("glMakeTextureHandleResident");
+
+    if (make_resident_ptr == null) {
+        @panic("Bindless textures not supported by GPU/driver");
+    }
+
+    return @ptrCast(make_resident_ptr.?);
+}
+
 pub fn motion_accelerate(motion: *c.Motion, movement: *const c.Movement, direction: rl.Vector2, delta_time: f32) void {
     if (direction.length() == 0.0) return;
 
