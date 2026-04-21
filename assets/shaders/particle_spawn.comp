@@ -1,5 +1,7 @@
 #version 430
 
+#define PI 3.14159265359;
+
 layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 
 layout(std430, binding = 2) buffer AliveCount { uint aliveCount; };
@@ -19,6 +21,7 @@ layout(location = 7) uniform int atlasCellCols;
 layout(location = 8) uniform int atlasCellRows;
 layout(location = 9) uniform vec4 tintColor;
 layout(location = 10) uniform vec2 scaleRange;
+layout(location = 11) uniform vec2 speedRange;
 
 uint pcgHash(uint seed) {
     uint state = seed * 747796405u + 2891336453u;
@@ -65,7 +68,11 @@ void main() {
 
     float scale = randRange(pcgState, scaleRange.x, scaleRange.y);
 
-    nextState_0[outIndex] = vec4(spawnPosition.x, spawnPosition.y, 0.0, 0.0);
+    float angle = rand(pcgState) * 2 * PI;
+    vec2 dir = vec2(cos(angle), sin(angle));
+    vec2 velocity = dir * randRange(pcgState, speedRange.x, speedRange.y);
+
+    nextState_0[outIndex] = vec4(spawnPosition.x, spawnPosition.y, velocity.x, velocity.y);
     nextState_1[outIndex] = tintColor;
     nextState_2[outIndex] = vec4(float(atlasHandle.x), float(atlasHandle.y), float(atlasCellCols), float(atlasCellRows));
     nextState_3[outIndex] = vec4(float(cellIndex), lifetimeSec, initialRotation, scale);

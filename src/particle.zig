@@ -284,8 +284,6 @@ pub fn compute(data: *ParticleSystem) void {
 }
 
 pub fn draw(data: *ParticleSystem, particle_shader: rl.Shader, viewport_width: i32, viewport_height: i32) void {
-    // const particle_scale: f32 = 0.5;
-
     const particle_state_0 = data.particle_state_0[data.particle_state_index];
     const particle_state_1 = data.particle_state_1[data.particle_state_index];
     const particle_state_2 = data.particle_state_2[data.particle_state_index];
@@ -352,9 +350,11 @@ pub fn spawnBurst(
 
     rl.gl.rlEnableShader(system.spawn_shader);
 
-    // x = min
-    // y = max
-    const scale: rl.Vector2 = switch (spec.scale) {
+    const scale_range: rl.Vector2 = switch (spec.scale) {
+        .flat => |s| rl.Vector2{ .x = s, .y = s },
+        .range => |r| rl.Vector2{ .x = r.min, .y = r.max },
+    };
+    const speed_range: rl.Vector2 = switch (spec.scale) {
         .flat => |s| rl.Vector2{ .x = s, .y = s },
         .range => |r| rl.Vector2{ .x = r.min, .y = r.max },
     };
@@ -377,7 +377,8 @@ pub fn spawnBurst(
     rl.gl.rlSetUniform(8, &spec.texture.atlas.rows, @intFromEnum(rl.ShaderUniformDataType.int), 1);
     const color_normalized: rl.Vector4 = spec.color.normalize();
     rl.gl.rlSetUniform(9, &color_normalized, @intFromEnum(rl.ShaderUniformDataType.vec4), 1);
-    rl.gl.rlSetUniform(10, &scale, @intFromEnum(rl.ShaderUniformDataType.vec2), 1);
+    rl.gl.rlSetUniform(10, &scale_range, @intFromEnum(rl.ShaderUniformDataType.vec2), 1);
+    rl.gl.rlSetUniform(11, &speed_range, @intFromEnum(rl.ShaderUniformDataType.vec2), 1);
 
     const next_0 = system.particle_state_0[1 - system.particle_state_index];
     const next_1 = system.particle_state_1[1 - system.particle_state_index];

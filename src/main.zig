@@ -216,7 +216,7 @@ fn update(ctx: *Context) void {
                 .color = .violet,
                 .texture = .{ .atlas = atlas, .cell_index = 0 },
                 .speed = .{ .range = .{ .min = 0.5, .max = 3.0 } },
-                .scale = .{ .range = .{ .min = 0.5, .max = 1.0 } },
+                .scale = .{ .range = .{ .min = 0.2, .max = 1.0 } },
                 .lifetime_sec = .{ .flat = 1.5 },
             },
         );
