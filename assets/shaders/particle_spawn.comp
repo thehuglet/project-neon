@@ -54,7 +54,7 @@ void main() {
     vec2 spawnPosition = spawnPos + vec2(x, y) * spawnRadius;
 
     float initialRotation = rand(pcgState);
-    float lifetime_sec = rand(pcgState) * 4.7 + 0.3;
+    float lifetimeSec = rand(pcgState) * 4.7 + 0.3;
     int cellIndex = 1;
 
     uint outIndex = atomicAdd(aliveCount, 1);
@@ -68,5 +68,5 @@ void main() {
     nextState_0[outIndex] = vec4(spawnPosition.x, spawnPosition.y, 0.0, 0.0);
     nextState_1[outIndex] = tintColor;
     nextState_2[outIndex] = vec4(float(atlasHandle.x), float(atlasHandle.y), float(atlasCellCols), float(atlasCellRows));
-    nextState_3[outIndex] = vec4(float(cellIndex), lifetime_sec, initialRotation, scale);
+    nextState_3[outIndex] = vec4(float(cellIndex), lifetimeSec, initialRotation, scale);
 }
