@@ -43,6 +43,7 @@ const DrawIndirectData = struct {
 };
 
 pub const Spec = struct {
+    // TODO: implement N color gradients using generated texture lookups
     color: rl.Color,
     speed: union(enum) {
         flat: f32,
@@ -291,6 +292,7 @@ pub fn draw(data: *ParticleSystem, particle_shader: rl.Shader, viewport_width: i
     const particle_state_3 = data.particle_state_3[data.particle_state_index];
 
     rl.beginShaderMode(particle_shader);
+    rl.beginBlendMode(.additive);
 
     // rl.setShaderValue(particle_shader, @intFromEnum(DrawUniLoc.particle_scale), &particle_scale, rl.ShaderUniformDataType.float);
 
@@ -327,6 +329,7 @@ pub fn draw(data: *ParticleSystem, particle_shader: rl.Shader, viewport_width: i
     c_glad.glDrawArraysIndirect(c_glad.GL_TRIANGLES, null);
 
     rl.gl.rlDisableVertexArray();
+    rl.endBlendMode();
     rl.endShaderMode();
 }
 

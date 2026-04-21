@@ -27,7 +27,7 @@ void main() {
         blurred *= tintColor;
         finalColor = blurred;
     } else {
-        clean *= tintColor;
+        clean.rgb = mix(clean.rgb, tintColor.rgb, 0.8);
         finalColor = clean;
     }
 }

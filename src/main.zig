@@ -192,7 +192,7 @@ pub fn main() !void {
                 var buf: [64]u8 = undefined;
                 const text = std.fmt.bufPrintZ(&buf, "PARTICLES: {}", .{count}) catch unreachable;
 
-                rl.drawText(text, 0, 22, 20, .white);
+                rl.drawText(text, 200, 0, 20, .white);
             }
             rl.endDrawing();
         }
