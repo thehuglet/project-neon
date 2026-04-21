@@ -4,20 +4,16 @@ layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 
 layout(std430, binding = 2) buffer AliveCount { uint aliveCount; };
 layout(std430, binding = 3) readonly buffer PrevAliveCount { uint prevAliveCount; };
-layout(std430, binding = 4) readonly buffer CurrentParticleState_0 { vec4 currentState_0[]; };
-layout(std430, binding = 5) readonly buffer CurrentParticleState_1 { vec4 currentState_1[]; };
-layout(std430, binding = 6) readonly buffer CurrentParticleState_2 { vec4 currentState_2[]; };
-layout(std430, binding = 7) readonly buffer CurrentParticleState_3 { vec4 currentState_3[]; };
-layout(std430, binding = 8) buffer NextParticleState_0 { vec4 nextState_0[]; };
-layout(std430, binding = 9) buffer NextParticleState_1 { vec4 nextState_1[]; };
-layout(std430, binding = 10) buffer NextParticleState_2 { vec4 nextState_2[]; };
-layout(std430, binding = 11) buffer NextParticleState_3 { vec4 nextState_3[]; };
+layout(std430, binding = 10) readonly buffer CurrentParticleState_0 { vec4 currentState_0[]; };
+layout(std430, binding = 11) readonly buffer CurrentParticleState_1 { vec4 currentState_1[]; };
+layout(std430, binding = 12) readonly buffer CurrentParticleState_2 { vec4 currentState_2[]; };
+layout(std430, binding = 13) readonly buffer CurrentParticleState_3 { vec4 currentState_3[]; };
+layout(std430, binding = 20) buffer NextParticleState_0 { vec4 nextState_0[]; };
+layout(std430, binding = 21) buffer NextParticleState_1 { vec4 nextState_1[]; };
+layout(std430, binding = 22) buffer NextParticleState_2 { vec4 nextState_2[]; };
+layout(std430, binding = 23) buffer NextParticleState_3 { vec4 nextState_3[]; };
 
 layout(location = 0) uniform float deltaTime;
-
-// Accessors to packed data
-#define pos(index)            (currentState_0[(index)].xy)
-#define lifetime_sec(index)   (currentState_0[(index)].z)
 
 void main() {
     uint index = gl_GlobalInvocationID.x;
@@ -26,17 +22,31 @@ void main() {
         return;
     }
 
-    float newLifetimeSec = lifetime_sec(index) - deltaTime;
+    float newLifetimeSec = currentState_3[index].y - deltaTime;
 
     if (newLifetimeSec > 0.0) {
         // Particle is alive
         uint outIndex = atomicAdd(aliveCount, 1);
 
-        float posX = pos(index).x + 0.001 * index * deltaTime;
-        float posY = pos(index).y;
-        nextState_0[outIndex] = vec4(posX, posY, newLifetimeSec, 0.0);
-        nextState_1[outIndex] = currentState_1[index];
-        nextState_2[outIndex] = currentState_2[index];
-        nextState_3[outIndex] = currentState_3[index];
+        vec4 state_0 = currentState_0[index];
+        vec4 state_1 = currentState_1[index];
+        vec4 state_2 = currentState_2[index];
+        vec4 state_3 = currentState_3[index];
+
+        // Update lifetime
+        state_3.y = newLifetimeSec;
+
+        // Update pos by velocity
+        state_0.xy += state_0.zw * deltaTime;
+
+        // Update velocity by drag force
+        float speed = length(state_0.zw);
+        vec2 dragForce = state_0.zw * -2.0 * speed * deltaTime;
+        state_0.zw += dragForce;
+
+        nextState_0[outIndex] = state_0;
+        nextState_1[outIndex] = state_1;
+        nextState_2[outIndex] = state_2;
+        nextState_3[outIndex] = state_3;
     }
 }

@@ -3,10 +3,10 @@
 layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 
 layout(std430, binding = 2) buffer AliveCount { uint aliveCount; };
-layout(std430, binding = 8) buffer NextParticleState_0 { vec4 nextState_0[]; };
-layout(std430, binding = 9) buffer NextParticleState_1 { vec4 nextState_1[]; };
-layout(std430, binding = 10) buffer NextParticleState_2 { vec4 nextState_2[]; };
-layout(std430, binding = 11) buffer NextParticleState_3 { vec4 nextState_3[]; };
+layout(std430, binding = 20) buffer NextParticleState_0 { vec4 nextState_0[]; };
+layout(std430, binding = 21) buffer NextParticleState_1 { vec4 nextState_1[]; };
+layout(std430, binding = 22) buffer NextParticleState_2 { vec4 nextState_2[]; };
+layout(std430, binding = 23) buffer NextParticleState_3 { vec4 nextState_3[]; };
 
 layout(location = 0) uniform int maxParticles;
 layout(location = 1) uniform int spawnCount;
@@ -17,10 +17,7 @@ layout(location = 5) uniform uvec2 atlasHandle;     // split u64
 layout(location = 6) uniform int atlasCellCount;
 layout(location = 7) uniform int atlasCellCols;
 layout(location = 8) uniform int atlasCellRows;
-
-// Accessors to packed data
-// #define pos(index)              (nextState_0[(index)].xy)
-// #define lifetime_sec(index)     (nextState_0[(index)].z)
+layout(location = 9) uniform vec4 tintColor;
 
 float rand(inout uint seed) {
     seed = (seed << 13) ^ seed;
@@ -40,9 +37,9 @@ void main() {
     float y = rand(seed) * 1.8 - 1.0;
     vec2 pos = spawnCenter + vec2(x, y) * spawnRadius;
 
-    float lifetime = rand(seed) * 4.7 + 0.3;
-    // int cellIndex = int(rand(seed) * float(atlasCellCount));
-    int cellIndex = 0;
+    float initialRotation = rand(seed);
+    float lifetime_sec = rand(seed) * 4.7 + 0.3;
+    int cellIndex = 1;
 
     uint outIndex = atomicAdd(aliveCount, 1);
 
@@ -50,28 +47,8 @@ void main() {
         return;
     }
 
-    nextState_0[outIndex] = vec4(
-        pos.x,
-        pos.y,
-        lifetime,
-        float(atlasCellCols)
-    );
-    nextState_1[outIndex] = vec4(
-        0.0,
-        0.0,
-        0.0,
-        0.0
-    );
-    nextState_2[outIndex] = vec4(
-        float(atlasHandle.x),
-        float(atlasHandle.y),
-        float(atlasCellCols),
-        float(atlasCellRows)
-    );
-    nextState_3[outIndex] = vec4(
-        float(cellIndex),
-        0.0,
-        0.0,
-        0.0
-    );
+    nextState_0[outIndex] = vec4(pos.x, pos.y, 0.0, 0.0);
+    nextState_1[outIndex] = tintColor;
+    nextState_2[outIndex] = vec4(float(atlasHandle.x), float(atlasHandle.y), float(atlasCellCols), float(atlasCellRows));
+    nextState_3[outIndex] = vec4(float(cellIndex), lifetime_sec, initialRotation, 0.0);
 }

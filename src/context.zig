@@ -1,6 +1,6 @@
 const ECS = @import("ecs").ECS;
 const EntityId = @import("ecs").EntityId;
-const ParticleData = @import("particle").ParticleData;
+const ParticleSystemData = @import("particle").ParticleSystemData;
 const GlGetTextureHandleFnPtr = @import("helpers").GlGetTextureHandleFnPtr;
 const GlMakeTextureHandleResidentFnPtr = @import("helpers").GlMakeTextureHandleResidentFnPtr;
 
@@ -81,7 +81,7 @@ pub const Context = struct {
     },
     atlases: std.EnumMap(enums.AtlasId, TextureAtlas),
     shaders: std.EnumMap(enums.ShaderId, rl.Shader),
-    particle_data: ParticleData,
+    particle_system_data: ParticleSystemData,
     game_settings: struct {
         show_hurtboxes: bool,
         show_hitboxes: bool,
@@ -122,7 +122,7 @@ pub const Context = struct {
         self.temp.hurt_layers.deinit(self.allocator);
 
         // Particles
-        particle.deinit(self.particle_data);
+        particle.deinit(self.particle_system_data);
     }
 
     pub fn clearTemp(self: *Context) void {

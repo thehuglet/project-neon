@@ -80,7 +80,7 @@ pub fn main() !void {
             .show_hurtboxes = false,
             .show_hitboxes = false,
         },
-        .particle_data = particle.init(allocator),
+        .particle_system_data = particle.init(allocator),
         .player_input_state = .{
             .move_up = false,
             .move_down = false,
@@ -135,14 +135,14 @@ pub fn main() !void {
 
         // --- Pre-draw update ---
         const zero: u32 = 0;
-        rl.gl.rlUpdateShaderBuffer(ctx.particle_data.alive_count, &zero, @sizeOf(u32), 0);
+        rl.gl.rlUpdateShaderBuffer(ctx.particle_system_data.alive_count, &zero, @sizeOf(u32), 0);
         update(&ctx);
-        particle.compute(&ctx.particle_data);
+        particle.compute(&ctx.particle_system_data);
 
         // --- Canvas drawing ---
         rl.beginTextureMode(canvas);
         draw(&ctx);
-        particle.draw(&ctx.particle_data, ctx.shaders.get(.particle).?, ctx.canvas_size.width, ctx.canvas_size.height);
+        particle.draw(&ctx.particle_system_data, ctx.shaders.get(.particle).?, ctx.canvas_size.width, ctx.canvas_size.height);
         rl.endTextureMode();
 
         // --- Post-draw update ---
@@ -187,7 +187,7 @@ pub fn main() !void {
             rl.drawFPS(0, 0);
             // Debug particle counter
             {
-                const count: u32 = particle.debugGetAliveCount(&ctx.particle_data);
+                const count: u32 = particle.debugGetAliveCount(&ctx.particle_system_data);
                 var buf: [64]u8 = undefined;
                 const text = std.fmt.bufPrintZ(&buf, "PARTICLES: {}", .{count}) catch unreachable;
 
@@ -207,11 +207,12 @@ fn update(ctx: *Context) void {
     }
 
     if (rl.isKeyPressed(.f)) {
-        const atlas = ctx.atlases.get(.projectile).?;
+        const atlas = ctx.atlases.get(.cube).?;
         particle.spawnBurst(
-            &ctx.particle_data,
+            &ctx.particle_system_data,
             100,
             .{ .x = 0.0, .y = 0.0 },
+            .red,
             0.9,
             &atlas,
         );
