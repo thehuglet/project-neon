@@ -2,7 +2,7 @@
 
 layout(location = 0) in vec2 vertexPosition;
 
-layout(location = 0) uniform float particleScale;
+// layout(location = 0) uniform float particleScale;
 layout(location = 1) uniform mat4 projection;
 layout(location = 2) uniform int cellWidthPx;
 layout(location = 3) uniform int cellHeightPx;
@@ -35,14 +35,15 @@ void main() {
     int atlasCols = int(currentState_2[id].z);
     int atlasRows = int(currentState_2[id].w);
     int cellIdx = int(currentState_3[id].x);
+    float scale = currentState_3[id].w;
 
     tintColor = currentState_1[id];
 
-    float angle_sin = sin(angle);
-    float angle_cos = cos(angle);
+    float angleSin = sin(angle);
+    float angleCos = cos(angle);
     mat2 rot = mat2(
-        angle_cos, -angle_sin,
-        angle_sin,  angle_cos
+        angleCos, -angleSin,
+        angleSin,  angleCos
     );
 
     fragHandle = uvec2(handleLo, handleHi);
@@ -51,15 +52,16 @@ void main() {
     float cellV = float(cellHeightPx) / float(atlasTexHeight);
     fragCellV = cellV;
 
+    // TODO: Move blurred UV math from frag to here and expose via out
     int col = cellIdx % atlasCols;
     int row = cellIdx / atlasCols;
     vec2 cellOffset = vec2(float(col) * cellU, float(row) * cellV);
     vec2 baseUV = vertexPosition + vec2(0.5);
     fragCleanUV = cellOffset + baseUV * vec2(cellU, cellV);
 
-    float scale = particleScale * 0.2;
+    float finalScale = scale * 0.2;
     float aspect = viewportSize.x / viewportSize.y;
-    vec2 vertex = rot * vertexPosition * scale * vec2(1.0 / aspect, 1.0);
+    vec2 vertex = rot * vertexPosition * finalScale * vec2(1.0 / aspect, 1.0);
     vec2 worldPos = position + vertex;
     gl_Position = projection * vec4(worldPos, 0.0, 1.0);
 }

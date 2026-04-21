@@ -15,6 +15,7 @@ const rl = @import("raylib");
 const system = @import("system");
 const debug = @import("debug.zig");
 const particle = @import("particle");
+const types = @import("types");
 
 pub fn main() !void {
     var threaded_io: std.Io.Threaded = .init_single_threaded;
@@ -80,7 +81,7 @@ pub fn main() !void {
             .show_hurtboxes = false,
             .show_hitboxes = false,
         },
-        .particle_system_data = particle.init(allocator),
+        .particle_system = particle.init(allocator),
         .player_input_state = .{
             .move_up = false,
             .move_down = false,
@@ -135,14 +136,14 @@ pub fn main() !void {
 
         // --- Pre-draw update ---
         const zero: u32 = 0;
-        rl.gl.rlUpdateShaderBuffer(ctx.particle_system_data.alive_count, &zero, @sizeOf(u32), 0);
+        rl.gl.rlUpdateShaderBuffer(ctx.particle_system.alive_count, &zero, @sizeOf(u32), 0);
         update(&ctx);
-        particle.compute(&ctx.particle_system_data);
+        particle.compute(&ctx.particle_system);
 
         // --- Canvas drawing ---
         rl.beginTextureMode(canvas);
         draw(&ctx);
-        particle.draw(&ctx.particle_system_data, ctx.shaders.get(.particle).?, ctx.canvas_size.width, ctx.canvas_size.height);
+        particle.draw(&ctx.particle_system, ctx.shaders.get(.particle).?, ctx.canvas_size.width, ctx.canvas_size.height);
         rl.endTextureMode();
 
         // --- Post-draw update ---
@@ -187,7 +188,7 @@ pub fn main() !void {
             rl.drawFPS(0, 0);
             // Debug particle counter
             {
-                const count: u32 = particle.debugGetAliveCount(&ctx.particle_system_data);
+                const count: u32 = particle.debugGetAliveCount(&ctx.particle_system);
                 var buf: [64]u8 = undefined;
                 const text = std.fmt.bufPrintZ(&buf, "PARTICLES: {}", .{count}) catch unreachable;
 
@@ -209,13 +210,24 @@ fn update(ctx: *Context) void {
     if (rl.isKeyPressed(.f)) {
         const atlas = ctx.atlases.get(.cube).?;
         particle.spawnBurst(
-            &ctx.particle_system_data,
-            100,
+            &ctx.particle_system,
             .{ .x = 0.0, .y = 0.0 },
-            .red,
-            0.9,
-            &atlas,
+            .{
+                .color = .violet,
+                .texture = .{ .atlas = atlas, .cell_index = 0 },
+                .speed = .{ .range = .{ .min = 0.5, .max = 3.0 } },
+                .scale = .{ .range = .{ .min = 0.5, .max = 1.0 } },
+                .lifetime_sec = .{ .flat = 1.5 },
+            },
         );
+        // particle.spawnBurst(
+        //     &ctx.particle_system_data,
+        //     100,
+        //     .{ .x = 0.0, .y = 0.0 },
+        //     .red,
+        //     0.9,
+        //     &atlas,
+        // );
         std.debug.print("spawned particles!\n", .{});
     }
 
