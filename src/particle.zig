@@ -67,10 +67,23 @@ pub const Spec = struct {
 };
 
 const ParticleState = extern struct {
-    state_0: rl.Vector4,
-    state_1: rl.Vector4,
-    state_2: rl.Vector4,
-    state_3: rl.Vector4,
+    // --- 16 bytes ---
+    position: @Vector(2, f32) align(8),
+    velocity: @Vector(2, f32) align(8),
+
+    // --- 16 bytes ---
+    color: @Vector(4, f32) align(16),
+
+    // --- 16 bytes ---
+    atlasHandle: @Vector(2, u32) align(8),
+    atlasCols: u32,
+    atlasRows: u32,
+
+    // --- 16 bytes ---
+    atlasCellIndex: u32,
+    lifetimeSec: f32,
+    rotation: f32,
+    scale: f32,
 };
 
 pub const ParticleSystem = struct {
@@ -88,10 +101,6 @@ pub const ParticleSystem = struct {
 
     // Current and next frame state pair handles
     particle_state: [2]u32,
-    // particle_state_0: [2]u32,
-    // particle_state_1: [2]u32,
-    // particle_state_2: [2]u32,
-    // particle_state_3: [2]u32,
     particle_state_index: u32,
 
     // Indirect handles
@@ -131,10 +140,16 @@ pub fn init(allocator: std.mem.Allocator) ParticleSystem {
 
     for (initial_particle_state) |*p| {
         p.* = .{
-            .state_0 = .init(0.0, 0.0, 0.0, 0.0),
-            .state_1 = .init(0.0, 0.0, 0.0, 0.0),
-            .state_2 = .init(0.0, 0.0, 0.0, 0.0),
-            .state_3 = .init(0.0, 0.0, 0.0, 0.0),
+            .position = .{ 0.0, 0.0 },
+            .velocity = .{ 0.0, 0.0 },
+            .color = .{ 0.0, 0.0, 0.0, 0.0 },
+            .atlasHandle = .{ 0, 0 },
+            .atlasCols = 0,
+            .atlasRows = 0,
+            .atlasCellIndex = 0,
+            .lifetimeSec = 0.0,
+            .rotation = 0.0,
+            .scale = 0.0,
         };
     }
 
@@ -322,7 +337,7 @@ pub fn spawnBurst(
     // atlas: *const TextureAtlas,
 ) void {
     // TODO: implement these properly:
-    const count: u32 = 33_000;
+    const count: u32 = 50;
     const spawn_radius: f32 = 0.9;
 
     const groups = (count + 1023) / 1024;

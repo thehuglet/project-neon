@@ -11,7 +11,7 @@ pub fn drawStarfieldBackground(ctx: *Context) void {
     const u_time = helpers.shaderUniform(shader, "u_time");
     rl.setShaderValue(shader, u_time, &game_time, .float);
 
-    // rl.beginShaderMode(shader);
+    rl.beginShaderMode(shader);
     rl.drawRectangle(
         0,
         0,
@@ -19,5 +19,5 @@ pub fn drawStarfieldBackground(ctx: *Context) void {
         ctx.canvas_size.height,
         rl.Color.black,
     );
-    // rl.endShaderMode();
+    rl.endShaderMode();
 }

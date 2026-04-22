@@ -3,10 +3,23 @@
 #define PI 3.14159265359;
 
 struct ParticleState {
-    vec4 state_0;
-    vec4 state_1;
-    vec4 state_2;
-    vec4 state_3;
+    // --- 16 bytes ---
+    vec2 position;          // 8
+    vec2 velocity;          // 8
+
+    // --- 16 bytes ---
+    vec4 color;             // 16
+
+    // --- 16 bytes ---
+    uvec2 atlasHandle;      // 8
+    uint  atlasCols;        // 4
+    uint  atlasRows;        // 4
+
+    // --- 16 bytes ---
+    uint  atlasCellIndex;   // 4
+    float lifetimeSec;      // 4
+    float rotation;         // 4
+    float scale;            // 4
 };
 
 layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
@@ -20,7 +33,6 @@ layout(location = 2) uniform float globalSeed;
 layout(location = 3) uniform vec2 spawnPos;
 layout(location = 4) uniform float spawnRadius;
 layout(location = 5) uniform uvec2 atlasHandle;     // split u64
-// layout(location = 6) uniform int atlasCellCount;
 layout(location = 7) uniform int atlasCellCols;
 layout(location = 8) uniform int atlasCellRows;
 layout(location = 9) uniform vec4 tintColor;
@@ -48,23 +60,21 @@ float randRange(inout uint state, float minV, float maxV) {
 }
 
 void main() {
-    int index = int(gl_GlobalInvocationID.x);
+    uint index = gl_GlobalInvocationID.x;
 
     if (index >= spawnCount) {
         return;
     }
 
-    // ParticleState pNext = nextState[index];
+    uint rng = pcgHash(index ^ floatBitsToUint(globalSeed));
 
-    uint pcgState = pcgHash(index ^ floatBitsToUint(globalSeed));
-
-    float x = rand(pcgState) * 2.0 - 1.0;
-    float y = rand(pcgState) * 1.8 - 1.0;
+    float x = rand(rng) * 2.0 - 1.0;
+    float y = rand(rng) * 1.8 - 1.0;
     vec2 spawnPosition = spawnPos + vec2(x, y) * spawnRadius;
 
-    float initialRotation = rand(pcgState);
-    float lifetimeSec = rand(pcgState) * 4.7 + 0.3;
-    int cellIndex = 1;
+    float initialRotation = rand(rng);
+    float lifetimeSec = rand(rng) * 4.7 + 0.3;
+    uint cellIndex = 0;
 
     uint outIndex = atomicAdd(aliveCount, 1);
 
@@ -72,21 +82,22 @@ void main() {
         return;
     }
 
-    float scale = randRange(pcgState, scaleRange.x, scaleRange.y);
+    float scale = randRange(rng, scaleRange.x, scaleRange.y);
 
-    float angle = rand(pcgState) * 2 * PI;
+    float angle = rand(rng) * 2 * PI;
     vec2 dir = vec2(cos(angle), sin(angle));
-    vec2 velocity = dir * randRange(pcgState, speedRange.x, speedRange.y);
+    vec2 velocity = dir * randRange(rng, speedRange.x, speedRange.y);
 
     nextState[index] = ParticleState(
-        vec4(spawnPosition.x, spawnPosition.y, velocity.x, velocity.y),
+        spawnPosition,
+        velocity,
         tintColor,
-        vec4(float(atlasHandle.x), float(atlasHandle.y), float(atlasCellCols), float(atlasCellRows)),
-        vec4(float(cellIndex), lifetimeSec, initialRotation, scale)
+        atlasHandle,
+        atlasCellCols,
+        atlasCellRows,
+        cellIndex,
+        lifetimeSec,
+        initialRotation,
+        scale
     );
-
-    // nextState[outIndex] = vec4(spawnPosition.x, spawnPosition.y, velocity.x, velocity.y);
-    // nextState[outIndex] = tintColor;
-    // nextState_2[outIndex] = vec4(float(atlasHandle.x), float(atlasHandle.y), float(atlasCellCols), float(atlasCellRows));
-    // nextState_3[outIndex] = vec4(float(cellIndex), lifetimeSec, initialRotation, scale);
 }

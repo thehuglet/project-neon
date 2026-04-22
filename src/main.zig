@@ -213,7 +213,7 @@ fn update(ctx: *Context) void {
             &ctx.particle_system,
             .{ .x = 0.0, .y = 0.0 },
             .{
-                .color = .violet,
+                .color = .lime,
                 .texture = .{ .atlas = atlas, .cell_index = 0 },
                 .speed = .{ .range = .{ .min = 0.5, .max = 3.0 } },
                 .scale = .{ .range = .{ .min = 0.2, .max = 1.0 } },
