@@ -152,9 +152,9 @@ pub fn main() !void {
 
         // ------ Drawing canvas to window ------
         {
-            const bloom_shader = ctx.shaders.get(.bloom).?;
+            // const bloom_shader = ctx.shaders.get(.bloom).?;
             rl.beginDrawing();
-            rl.beginShaderMode(bloom_shader);
+            // rl.beginShaderMode(bloom_shader);
 
             const canvas_size = rl.Vector2{
                 .x = @floatFromInt(ctx.canvas_size.width),
@@ -184,7 +184,7 @@ pub fn main() !void {
                 rl.Color.white,
             );
 
-            rl.endShaderMode();
+            // rl.endShaderMode();
             rl.drawFPS(0, 0);
             // Debug particle counter
             {
