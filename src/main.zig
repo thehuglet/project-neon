@@ -119,10 +119,23 @@ pub fn main() !void {
         rl.setShaderValue(shader, resolution_loc, &resolution, .vec2);
     }
 
-    // --- Init particles ortho matrix ---
+    // --- Init particles projection matrix ---
     {
         const shader = ctx.shaders.get(.particle).?;
-        const ortho: rl.Matrix = rl.math.matrixOrtho(-1.0, 1.0, -1.0, 1.0, 0.0, 10.0);
+
+        const viewport_width: f32 = @floatFromInt(ctx.canvas_size.width);
+        const viewport_height: f32 = @floatFromInt(ctx.canvas_size.height);
+
+        const aspect_ratio: f32 = viewport_width / viewport_height;
+        const ortho = rl.math.matrixOrtho(
+            -aspect_ratio,
+            aspect_ratio,
+            -1.0,
+            1.0,
+            0.0,
+            10.0,
+        );
+        // const ortho: rl.Matrix = rl.math.matrixOrtho(-1.0, 1.0, -1.0, 1.0, 0.0, 10.0);
         const projection_loc: i32 = rl.getShaderLocation(shader, "projection");
         rl.setShaderValueMatrix(shader, projection_loc, ortho);
     }
@@ -207,7 +220,7 @@ fn update(ctx: *Context) void {
         }
     }
 
-    if (rl.isKeyPressed(.f)) {
+    if (rl.isKeyDown(.f)) {
         const atlas = ctx.atlases.get(.cube).?;
         particle.spawnBurst(
             &ctx.particle_system,
@@ -220,15 +233,6 @@ fn update(ctx: *Context) void {
                 .lifetime_sec = .{ .flat = 1.5 },
             },
         );
-        // particle.spawnBurst(
-        //     &ctx.particle_system_data,
-        //     100,
-        //     .{ .x = 0.0, .y = 0.0 },
-        //     .red,
-        //     0.9,
-        //     &atlas,
-        // );
-        std.debug.print("spawned particles!\n", .{});
     }
 
     // --- Systems ---

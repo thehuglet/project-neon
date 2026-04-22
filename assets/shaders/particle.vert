@@ -69,7 +69,11 @@ void main() {
         angleSin,  angleCos
     );
 
-    vec2 vertex = rotationMatrix * vertexPosition * finalScale * vec2(1.0 / aspect, 1.0);
+    vec2 vertex = rotationMatrix * vertexPosition * finalScale;
     vec2 worldPos = p.position + vertex;
     gl_Position = projection * vec4(worldPos, 0.0, 1.0);
+
+    // vec2 vertex = rotationMatrix * vertexPosition * finalScale * vec2(1.0 / aspect, 1.0);
+    // vec2 worldPos = p.position + vertex;
+    // gl_Position = projection * vec4(worldPos, 0.0, 1.0);
 }
