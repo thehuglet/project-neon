@@ -13,11 +13,6 @@ const particle = @import("particle");
 var glGetHandle: GlGetTextureHandleFnPtr = undefined;
 var glMakeResident: GlMakeTextureHandleResidentFnPtr = undefined;
 
-pub fn setupGlBindlessFnPtrs(get: GlGetTextureHandleFnPtr, make: GlMakeTextureHandleResidentFnPtr) void {
-    glGetHandle = get;
-    glMakeResident = make;
-}
-
 pub const CollisionLayer = packed struct {
     player: bool = false,
     enemy: bool = false,
@@ -29,9 +24,9 @@ pub const CollisionLayer = packed struct {
 
 pub const TextureAtlas = struct {
     texture: rl.Texture2D,
+    bindless_handle: u64,
     cell_width: i32,
     cell_height: i32,
-    bindless_handle: u64,
     cols: i32,
     rows: i32,
 
@@ -48,9 +43,9 @@ pub const TextureAtlas = struct {
         const rows: i32 = @divTrunc(tex_height, cell_height);
         return .{
             .texture = tex,
+            .bindless_handle = handle,
             .cell_width = cell_width,
             .cell_height = cell_height,
-            .bindless_handle = handle,
             .cols = cols,
             .rows = rows,
         };
@@ -59,6 +54,12 @@ pub const TextureAtlas = struct {
     pub fn deinit(self: TextureAtlas) void {
         rl.unloadTexture(self.texture);
     }
+};
+
+pub const GpuTextureAtlas = struct {
+    handle: @Vector(2, u32),
+    grid: @Vector(2, u32),
+    cell_size_uv: @Vector(2, f32),
 };
 
 pub const PlayerInputState = struct {
@@ -80,6 +81,7 @@ pub const Context = struct {
         height: i32,
     },
     atlases: std.EnumMap(enums.AtlasId, TextureAtlas),
+    gpu_atlases: std.EnumMap(enums.AtlasId, GpuTextureAtlas),
     shaders: std.EnumMap(enums.ShaderId, rl.Shader),
     particle_system: ParticleSystem,
     game_settings: struct {
@@ -122,7 +124,7 @@ pub const Context = struct {
         self.temp.hurt_layers.deinit(self.allocator);
 
         // Particles
-        particle.deinit(self.particle_system);
+        particle.deinit(&self.particle_system);
     }
 
     pub fn clearTemp(self: *Context) void {
@@ -132,3 +134,17 @@ pub const Context = struct {
         self.temp.hurt_layers.clearRetainingCapacity();
     }
 };
+
+// This modifies the globals in this module but that's fine.
+pub fn setupGlBindlessFnPtrs(get: GlGetTextureHandleFnPtr, make: GlMakeTextureHandleResidentFnPtr) void {
+    glGetHandle = get;
+    glMakeResident = make;
+}
+
+pub fn buildGpuAtlas(atlas: TextureAtlas) GpuTextureAtlas {
+    return .{
+        .handle = atlas.bindless_handle,
+        .grid = .{ @intCast(atlas.cols), @intCast(atlas.rows) },
+        .cell_size_uv = atlas.cell_size_uv,
+    };
+}

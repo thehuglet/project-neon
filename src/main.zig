@@ -2,6 +2,7 @@ const Context = @import("context").Context;
 const ECS = @import("ecs").ECS;
 const EntityId = @import("ecs").EntityId;
 const TextureAtlas = @import("context").TextureAtlas;
+const GpuTextureAtlas = @import("context").GPUTextureAtlas;
 
 const context = @import("context");
 const std = @import("std");
@@ -46,6 +47,13 @@ pub fn main() !void {
     context.setupGlBindlessFnPtrs(glGetTextureHandle, glMakeTextureHandleResident);
 
     // --- Init context ---
+    const atlases: std.EnumMap(enums.AtlasId, TextureAtlas) = .init(.{
+        .cube = .init("assets/gen_textures/atlases/cube_atlas.png", 96, 96),
+        .roto = .init("assets/gen_textures/atlases/roto_atlas.png", 96, 96),
+        .projectile = .init("assets/gen_textures/atlases/projectile_atlas.png", 96, 96),
+    });
+    const gpu_atlases: std.EnumMap(enums.AtlasId, GpuTextureAtlas) = .init();
+    // const gpu_texture_atlases =
     var ctx = Context{
         .ecs = ECS.init(allocator),
         .allocator = allocator,
@@ -54,11 +62,8 @@ pub fn main() !void {
             .width = 1920,
             .height = 1080,
         },
-        .atlases = .init(.{
-            .cube = .init("assets/gen_textures/atlases/cube_atlas.png", 96, 96),
-            .roto = .init("assets/gen_textures/atlases/roto_atlas.png", 96, 96),
-            .projectile = .init("assets/gen_textures/atlases/projectile_atlas.png", 96, 96),
-        }),
+        .atlases = atlases,
+        .gpu_atlses = gpu_atlases,
         .shaders = .init(.{
             .neon_sprite = try rl.loadShader(
                 "assets/shaders/neon_sprite.vert",

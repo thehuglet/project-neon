@@ -28,14 +28,14 @@ layout(std430, binding = 2) buffer AliveCount { uint aliveCount; };
 layout(std430, binding = 5) buffer NextParticleState_0 { ParticleState nextState[]; };
 
 layout(location = 0) uniform int maxParticles;
-layout(location = 1) uniform int spawnCount;
+layout(location = 1) uniform int count;
 layout(location = 2) uniform float globalSeed;
-layout(location = 3) uniform vec2 spawnPos;
+layout(location = 3) uniform vec2 position;
 layout(location = 4) uniform float spawnRadius;
 layout(location = 5) uniform uvec2 atlasHandle;     // split u64
 layout(location = 7) uniform int atlasCellCols;
 layout(location = 8) uniform int atlasCellRows;
-layout(location = 9) uniform vec4 tintColor;
+layout(location = 9) uniform vec4 color;
 layout(location = 10) uniform vec2 scaleRange;
 layout(location = 11) uniform vec2 speedRange;
 
@@ -62,7 +62,7 @@ float randRange(inout uint state, float minV, float maxV) {
 void main() {
     uint index = gl_GlobalInvocationID.x;
 
-    if (index >= spawnCount) {
+    if (index >= count) {
         return;
     }
 
@@ -70,7 +70,7 @@ void main() {
 
     float x = rand(rng) * 2.0 - 1.0;
     float y = rand(rng) * 1.8 - 1.0;
-    vec2 spawnPosition = spawnPos + vec2(x, y) * spawnRadius;
+    vec2 finalPos = position + vec2(x, y) * spawnRadius;
 
     float initialRotation = rand(rng);
     float lifetimeSec = rand(rng) * 4.7 + 0.3;
@@ -89,9 +89,9 @@ void main() {
     vec2 velocity = dir * randRange(rng, speedRange.x, speedRange.y);
 
     nextState[index] = ParticleState(
-        spawnPosition,
+        finalPos,
         velocity,
-        tintColor,
+        color,
         atlasHandle,
         atlasCellCols,
         atlasCellRows,

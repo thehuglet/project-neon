@@ -20,27 +20,23 @@ struct ParticleState {
     float scale;            // 4
 };
 
-layout(location = 0) in vec2 vertexPosition;
+layout(location = 0) in vec2 quadLocalPos;
 
 // layout(location = 0) uniform float particleScale;
 layout(location = 1) uniform mat4 projection;
-layout(location = 2) uniform int cellWidthPx;
-layout(location = 3) uniform int cellHeightPx;
-layout(location = 4) uniform int atlasTexWidth;
-layout(location = 5) uniform int atlasTexHeight;
-layout(location = 6) uniform vec2 viewportSize; // px
+// layout(location = 2) uniform int cellWidthPx;
+// layout(location = 3) uniform int cellHeightPx;
+// layout(location = 4) uniform int atlasTexWidth;
+// layout(location = 5) uniform int atlasTexHeight;
+// layout(location = 6) uniform vec2 viewportSize; // px
+layout(location = 8) uniform vec2 atlasCellSizeUV;
 
 layout(std430, binding = 4) buffer CurrentParticleState { ParticleState currentState[]; };
 
 out flat uvec2 fragHandle;
-out vec2 fragCleanUV;
+out vec2 fragUV;
 out float fragCellV;
 out vec4 tintColor;
-
-float rand(inout uint seed) {
-    seed = (seed << 13) ^ seed;
-    return float((seed * (seed * seed * 15731u + 789221u) + 1376312589u) & 0x7fffffff) / 2147483648.0;
-}
 
 void main() {
     int index = gl_InstanceID;
@@ -48,19 +44,15 @@ void main() {
 
     tintColor = p.color;
     fragHandle = p.atlasHandle;
-    float cellU = float(cellWidthPx) / float(atlasTexWidth);
-    float cellV = float(cellHeightPx) / float(atlasTexHeight);
-    fragCellV = cellV;
+    // float cellU = float(cellWidthPx) / float(atlasTexWidth);
+    // float cellV = float(cellHeightPx) / float(atlasTexHeight);
+    fragCellV = atlasCellSizeUV.y;
 
-    // TODO: Move this UV logic to frag instead
     uint col = p.atlasCellIndex % p.atlasCols;
-    uint row = p.atlasCellIndex / p.atlasRows;
-    vec2 cellOffset = vec2(float(col) * cellU, float(row) * cellV);
-    vec2 baseUV = vertexPosition + vec2(0.5);
-    fragCleanUV = cellOffset + baseUV * vec2(cellU, cellV);
-
-    float finalScale = p.scale * 0.2;
-    float aspect = viewportSize.x / viewportSize.y;
+    uint row = p.atlasCellIndex / p.atlasCols;
+    vec2 cellOffset = vec2(float(col) * atlasCellSizeUV.x, float(row) * cellV);
+    vec2 baseUV = quadLocalPos + vec2(0.5);
+    fragUV = cellOffset + baseUV * vec2(atlasCellSizeUV.x, atlasCellSizeUV.y);
 
     float angleSin = sin(p.rotation);
     float angleCos = cos(p.rotation);
@@ -68,12 +60,9 @@ void main() {
         angleCos, -angleSin,
         angleSin,  angleCos
     );
+    float finalScale = p.scale * 0.2;
 
-    vec2 vertex = rotationMatrix * vertexPosition * finalScale;
+    vec2 vertex = rotationMatrix * quadLocalPos * finalScale;
     vec2 worldPos = p.position + vertex;
     gl_Position = projection * vec4(worldPos, 0.0, 1.0);
-
-    // vec2 vertex = rotationMatrix * vertexPosition * finalScale * vec2(1.0 / aspect, 1.0);
-    // vec2 worldPos = p.position + vertex;
-    // gl_Position = projection * vec4(worldPos, 0.0, 1.0);
 }

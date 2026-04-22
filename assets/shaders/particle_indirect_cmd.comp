@@ -22,7 +22,7 @@ void main() {
     numGroupsZ = 1;
     prevAliveCount = aliveCount;
 
-    // indirect drawing related
+    // Indirect draw
     count = 6;
     instanceCount = aliveCount;
     first = 0;

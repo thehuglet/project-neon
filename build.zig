@@ -46,7 +46,6 @@ pub fn build(b: *std.Build) void {
     }{
         .{ .name = "math", .path = "src/math.zig" },
         .{ .name = "helpers", .path = "src/helpers.zig" },
-        .{ .name = "asset", .path = "src/asset.zig" },
         .{ .name = "weapon", .path = "src/weapon.zig" },
         .{ .name = "entity", .path = "src/entity/mod.zig" },
         .{ .name = "component", .path = "src/component/mod.zig" },

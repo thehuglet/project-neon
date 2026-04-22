@@ -5,7 +5,7 @@ layout(location = 6) uniform vec2 viewportSize;
 layout(location = 7) uniform int renderPass;
 
 in flat uvec2 fragHandle;
-in vec2 fragCleanUV;
+in vec2 fragUV;
 in float fragCellV;
 in vec4 tintColor;
 
