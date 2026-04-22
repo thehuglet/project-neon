@@ -19,14 +19,6 @@ const ComputeBufLoc = enum(u8) {
     prev_alive_count = 3,
     current_particle_state = 4,
     next_particle_state = 5,
-    // current_particle_state_0 = 10,
-    // current_particle_state_1 = 11,
-    // current_particle_state_2 = 12,
-    // current_particle_state_3 = 13,
-    // next_particle_state_0 = 20,
-    // next_particle_state_1 = 21,
-    // next_particle_state_2 = 22,
-    // next_particle_state_3 = 23,
 };
 
 const ComputeUniLoc = enum(u8) {
@@ -45,7 +37,6 @@ const DrawIndirectData = struct {
 };
 
 pub const Spec = struct {
-    // TODO: implement N color gradients using generated texture lookups
     color: rl.Color,
     speed: union(enum) {
         flat: f32,
@@ -278,11 +269,6 @@ pub fn compute(data: *ParticleSystem) void {
 }
 
 pub fn draw(data: *ParticleSystem, particle_shader: rl.Shader, viewport_width: i32, viewport_height: i32) void {
-    // const particle_state_0 = data.particle_state_0[data.particle_state_index];
-    // const particle_state_1 = data.particle_state_1[data.particle_state_index];
-    // const particle_state_2 = data.particle_state_2[data.particle_state_index];
-    // const particle_state_3 = data.particle_state_3[data.particle_state_index];
-
     const current_particle_state = data.particle_state[data.particle_state_index];
 
     rl.beginShaderMode(particle_shader);
@@ -303,11 +289,6 @@ pub fn draw(data: *ParticleSystem, particle_shader: rl.Shader, viewport_width: i
     rl.setShaderValue(particle_shader, 7, &render_pass, rl.ShaderUniformDataType.int);
 
     rl.gl.rlBindShaderBuffer(current_particle_state, @intFromEnum(ComputeBufLoc.current_particle_state));
-    // rl.gl.rlBindShaderBuffer(particle_state_0, @intFromEnum(ComputeBufLoc.current_particle_state_0));
-    // rl.gl.rlBindShaderBuffer(particle_state_1, @intFromEnum(ComputeBufLoc.current_particle_state_1));
-    // rl.gl.rlBindShaderBuffer(particle_state_2, @intFromEnum(ComputeBufLoc.current_particle_state_2));
-    // rl.gl.rlBindShaderBuffer(particle_state_3, @intFromEnum(ComputeBufLoc.current_particle_state_3));
-
     _ = rl.gl.rlEnableVertexArray(data.vao);
     c_glad.glBindBuffer(c_glad.GL_DRAW_INDIRECT_BUFFER, data.draw_indirect_args);
 
@@ -330,11 +311,6 @@ pub fn spawnBurst(
     system: *ParticleSystem,
     pos: rl.Vector2,
     spec: Spec,
-    // count: u32,
-    // center: rl.Vector2,
-    // color: rl.Color,
-    // radius: f32,
-    // atlas: *const TextureAtlas,
 ) void {
     // TODO: implement these properly:
     const count: u32 = 50;
@@ -364,10 +340,7 @@ pub fn spawnBurst(
     const handle = spec.texture.atlas.bindless_handle;
     const handle_lo: u32 = @truncate(handle);
     const handle_hi: u32 = @truncate(handle >> 32);
-    // rl.SetUniform shat itself here, needed glad.h
     c_glad.glUniform2ui(5, handle_lo, handle_hi);
-    // const cell_count: i32 = spec.texture.atlas.cols * spec.texture.atlas.rows;
-    // rl.gl.rlSetUniform(6, &cell_count, @intFromEnum(rl.ShaderUniformDataType.int), 1);
     rl.gl.rlSetUniform(7, &spec.texture.atlas.cols, @intFromEnum(rl.ShaderUniformDataType.int), 1);
     rl.gl.rlSetUniform(8, &spec.texture.atlas.rows, @intFromEnum(rl.ShaderUniformDataType.int), 1);
     const color_normalized: rl.Vector4 = spec.color.normalize();

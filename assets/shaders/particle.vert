@@ -44,22 +44,10 @@ float rand(inout uint seed) {
 
 void main() {
     int index = gl_InstanceID;
-
-    // vec2 position = currentState[index].state_0.xy;
-    // float angle = currentState[index].state_3.z;
-    // uint handleLo = uint(currentState[index].state_2.x);
-    // uint handleHi = uint(currentState[index].state_2.y);
-    // int atlasCols = int(currentState[index].state_2.z);
-    // int atlasRows = int(currentState[index].state_2.w);
-    // int cellIdx = int(currentState[index].state_3.x);
-    // float scale = currentState[index].state_3.w;
-
     ParticleState p = currentState[index];
 
     tintColor = p.color;
     fragHandle = p.atlasHandle;
-    // tintColor = currentState[index].state_1;
-
     float cellU = float(cellWidthPx) / float(atlasTexWidth);
     float cellV = float(cellHeightPx) / float(atlasTexHeight);
     fragCellV = cellV;
