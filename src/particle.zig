@@ -1,10 +1,12 @@
 const Context = @import("context").Context;
 const TextureAtlas = @import("context").TextureAtlas;
+const GpuTextureAtlas = @import("context").GpuTextureAtlas;
 
 const std = @import("std");
 const rl = @import("raylib");
 const helpers = @import("helpers");
 const types = @import("types");
+const enums = @import("enums");
 
 const c_glad = @cImport({
     @cInclude("glad.h");
@@ -13,7 +15,10 @@ const c_glad = @cImport({
 const U_TYPE_INT: u32 = @intFromEnum(rl.ShaderUniformDataType.int);
 const U_TYPE_FLOAT: u32 = @intFromEnum(rl.ShaderUniformDataType.float);
 const U_TYPE_VEC2: u32 = @intFromEnum(rl.ShaderUniformDataType.vec2);
+const U_TYPE_VEC4: u32 = @intFromEnum(rl.ShaderUniformDataType.vec4);
 const ZERO: u32 = 0;
+
+const MAX_GPU_TEXTURE_ATLASES = 64;
 
 pub const Spec = struct {
     color: rl.Color,
@@ -30,7 +35,7 @@ pub const Spec = struct {
         range: types.Range,
     },
     texture: struct {
-        atlas: TextureAtlas,
+        atlas_id: enums.AtlasId,
         cell_index: u32,
     },
     // gravity_scale: types.Range,
@@ -60,25 +65,26 @@ const DrawIndirectData = struct {
     baseInstance: c_uint,
 };
 
-/// Mirrored from GLSL side. Misalignment = UB.
-const ParticleState = extern struct {
+/// Mirrors GPU layout.
+const ParticleState = struct {
     // --- 16 bytes ---
-    position: @Vector(2, f32) align(8),
-    velocity: @Vector(2, f32) align(8),
-
+    position: @Vector(2, f32), // 8
+    velocity: @Vector(2, f32), // 8
     // --- 16 bytes ---
-    color: @Vector(4, f32) align(16),
-
+    color: @Vector(4, f32), // 16
     // --- 16 bytes ---
-    atlasHandle: @Vector(2, u32) align(8),
-    atlasCols: u32,
-    atlasRows: u32,
-
+    atlasId: u32, // 4
+    atlasCellIndex: u32, // 4
+    _pad0: u32, // 4
+    _pad1: u32, // 4
+    // atlasHandle: @Vector(2, u32) align(8),
+    // atlasCols: u32,
+    // atlasRows: u32,
     // --- 16 bytes ---
-    atlasCellIndex: u32,
-    lifetimeSec: f32,
-    rotation: f32,
-    scale: f32,
+    lifetimeSec: f32, // 4
+    rotation: f32, // 4
+    scale: f32, // 4
+    _pad2: u32, // 4
 };
 
 pub const ParticleSystem = struct {
@@ -97,20 +103,19 @@ pub const ParticleSystem = struct {
         global_seed: i32,
         position: i32,
         spawn_radius: i32,
-        atlas_handle: i32,
-        atlas_cell_cols: i32,
-        atlas_cell_rows: i32,
+        atlas_id: i32,
+        // atlas_handle: i32,
+        // atlas_cell_cols: i32,
+        // atlas_cell_rows: i32,
         color: i32,
         scale_range: i32,
         speed_range: i32,
     },
-    // draw_uniforms: struct {
-    //     projection: i32,
-    //     cell_width_px: i32,
-    //     cell_height_px: i32,
-
-    // },
+    draw_uniforms: struct {
+        projection: i32,
+    },
     // --- Buffer handles ---
+    atlases: u32,
     alive_count: u32,
     prev_alive_count: u32,
     particle_state: [2]u32,
@@ -119,7 +124,10 @@ pub const ParticleSystem = struct {
     indirect_draw_args: u32,
 };
 
-pub fn init(allocator: std.mem.Allocator) ParticleSystem {
+pub fn init(
+    allocator: std.mem.Allocator,
+    gpu_atlases: *std.EnumMap(enums.AtlasId, GpuTextureAtlas),
+) ParticleSystem {
     const update_shader = loadComputeShaderProgram("assets/shaders/particle_update.comp");
     const spawn_shader = loadComputeShaderProgram("assets/shaders/particle_spawn.comp");
     const indirect_cmd_shader = loadComputeShaderProgram("assets/shaders/particle_indirect_cmd.comp");
@@ -131,16 +139,21 @@ pub fn init(allocator: std.mem.Allocator) ParticleSystem {
 
     for (initial_particle_state) |*p| {
         p.* = .{
+            // --- 16 ---
             .position = .{ 0.0, 0.0 },
             .velocity = .{ 0.0, 0.0 },
+            // --- 16 ---
             .color = .{ 0.0, 0.0, 0.0, 0.0 },
-            .atlasHandle = .{ 0, 0 },
-            .atlasCols = 0,
-            .atlasRows = 0,
+            // --- 16 ---
+            .atlasId = 0,
             .atlasCellIndex = 0,
+            ._pad0 = 0,
+            ._pad1 = 0,
+            // --- 16 ---
             .lifetimeSec = 0.0,
             .rotation = 0.0,
             .scale = 0.0,
+            ._pad2 = 0,
         };
     }
     const particle_state = [_]u32{
@@ -155,6 +168,19 @@ pub fn init(allocator: std.mem.Allocator) ParticleSystem {
             rl.gl.rl_dynamic_copy,
         ),
     };
+
+    var atlas_array: [MAX_GPU_TEXTURE_ATLASES]GpuTextureAtlas = undefined;
+    {
+        var iter = gpu_atlases.iterator();
+        while (iter.next()) |entry| {
+            atlas_array[@intFromEnum(entry.key)] = entry.value.*;
+        }
+    }
+
+    const atlas_array_size = atlas_array.len * @sizeOf(GpuTextureAtlas);
+    const buf_atlases = rl.gl.rlLoadShaderBuffer(atlas_array_size, &atlas_array, rl.gl.rl_dynamic_copy);
+    const buf_alive_count = rl.gl.rlLoadShaderBuffer(@sizeOf(u32), &ZERO, rl.gl.rl_dynamic_copy);
+    const buf_prev_alive_count = rl.gl.rlLoadShaderBuffer(@sizeOf(u32), &max_particles, rl.gl.rl_dynamic_copy);
 
     // --- Init indirect dispatch args ---
     const initial_groups = (max_particles + 1023) / 1024;
@@ -211,15 +237,17 @@ pub fn init(allocator: std.mem.Allocator) ParticleSystem {
             .global_seed = rl.gl.rlGetLocationUniform(spawn_shader, "globalSeed"),
             .position = rl.gl.rlGetLocationUniform(spawn_shader, "position"),
             .spawn_radius = rl.gl.rlGetLocationUniform(spawn_shader, "spawnRadius"),
-            .atlas_handle = rl.gl.rlGetLocationUniform(spawn_shader, "atlasHandle"),
-            .atlas_cell_cols = rl.gl.rlGetLocationUniform(spawn_shader, "atlasCellCols"),
-            .atlas_cell_rows = rl.gl.rlGetLocationUniform(spawn_shader, "atlasCellRows"),
+            .atlas_id = rl.gl.rlGetLocationUniform(spawn_shader, "atlasId"),
+            // .atlas_handle = rl.gl.rlGetLocationUniform(spawn_shader, "atlasHandle"),
+            // .atlas_cell_cols = rl.gl.rlGetLocationUniform(spawn_shader, "atlasCellCols"),
+            // .atlas_cell_rows = rl.gl.rlGetLocationUniform(spawn_shader, "atlasCellRows"),
             .color = rl.gl.rlGetLocationUniform(spawn_shader, "color"),
             .scale_range = rl.gl.rlGetLocationUniform(spawn_shader, "scaleRange"),
             .speed_range = rl.gl.rlGetLocationUniform(spawn_shader, "speedRange"),
         },
-        .alive_count = rl.gl.rlLoadShaderBuffer(@sizeOf(u32), &ZERO, rl.gl.rl_dynamic_copy),
-        .prev_alive_count = rl.gl.rlLoadShaderBuffer(@sizeOf(u32), &max_particles, rl.gl.rl_dynamic_copy),
+        .atlases = buf_atlases,
+        .alive_count = buf_alive_count,
+        .prev_alive_count = buf_prev_alive_count,
         .particle_state = particle_state,
         .particle_state_index = 0,
         .indirect_dispatch_args = indirect_dispatch_args,
@@ -274,7 +302,7 @@ pub fn compute(system: *ParticleSystem) void {
     system.particle_state_index = 1 - system.particle_state_index;
 }
 
-pub fn draw(system: *ParticleSystem, particle_shader: rl.Shader, viewport_width: i32, viewport_height: i32) void {
+pub fn draw(system: *ParticleSystem, particle_shader: rl.Shader) void {
     const current_particle_state = system.particle_state[system.particle_state_index];
 
     rl.beginShaderMode(particle_shader);
@@ -297,8 +325,10 @@ pub fn draw(system: *ParticleSystem, particle_shader: rl.Shader, viewport_width:
     //      / @as(f32, @floatFromInt(viewport_width)),
     // );
 
-    rl.setShaderValue(particle_shader, 7, &render_pass, rl.ShaderUniformDataType.int);
-    rl.setShaderValue(particle_shader, 8, &atlas_cell_size_uv, rl.ShaderUniformDataType.vec2);
+    // rl.setShaderValue(particle_shader, 7, &render_pass, rl.ShaderUniformDataType.int);
+    // rl.setShaderValue(particle_shader, 8, &atlas_cell_size_uv, rl.ShaderUniformDataType.vec2);
+
+    rl.gl.rlBindShaderBuffer(system.atlases, 6);
 
     rl.gl.rlBindShaderBuffer(current_particle_state, @intFromEnum(ComputeBufLoc.current_particle_state));
     _ = rl.gl.rlEnableVertexArray(system.vao);
@@ -348,20 +378,21 @@ pub fn spawnBurst(
     rl.gl.rlSetUniform(u.global_seed, &seed, U_TYPE_FLOAT, 1);
     rl.gl.rlSetUniform(u.position, &pos, U_TYPE_VEC2, 1);
     rl.gl.rlSetUniform(u.spawn_radius, &spawn_radius, U_TYPE_FLOAT, 1);
-
-    const handle = spec.texture.atlas.bindless_handle;
-    const handle_lo: u32 = @truncate(handle);
-    const handle_hi: u32 = @truncate(handle >> 32);
-    c_glad.glUniform2ui(5, handle_lo, handle_hi);
-    rl.gl.rlSetUniform(7, &spec.texture.atlas.cols, @intFromEnum(rl.ShaderUniformDataType.int), 1);
-    rl.gl.rlSetUniform(8, &spec.texture.atlas.rows, @intFromEnum(rl.ShaderUniformDataType.int), 1);
+    const atlas_id = @intFromEnum(spec.texture.atlas_id);
+    rl.gl.rlSetUniform(u.atlas_id, &atlas_id, U_TYPE_INT, 1);
+    // const handle = spec.texture.atlas.bindless_handle;
+    // const handle_lo: u32 = @truncate(handle);
+    // const handle_hi: u32 = @truncate(handle >> 32);
+    // c_glad.glUniform2ui(5, handle_lo, handle_hi);
+    // rl.gl.rlSetUniform(7, &spec.texture.atlas.cols, @intFromEnum(rl.ShaderUniformDataType.int), 1);
+    // rl.gl.rlSetUniform(8, &spec.texture.atlas.rows, @intFromEnum(rl.ShaderUniformDataType.int), 1);
     const color_normalized: rl.Vector4 = spec.color.normalize();
-    rl.gl.rlSetUniform(9, &color_normalized, @intFromEnum(rl.ShaderUniformDataType.vec4), 1);
-    rl.gl.rlSetUniform(10, &scale_range, @intFromEnum(rl.ShaderUniformDataType.vec2), 1);
-    rl.gl.rlSetUniform(11, &speed_range, @intFromEnum(rl.ShaderUniformDataType.vec2), 1);
+    rl.gl.rlSetUniform(u.color, &color_normalized, U_TYPE_VEC4, 1);
+    rl.gl.rlSetUniform(u.scale_range, &scale_range, U_TYPE_VEC2, 1);
+    rl.gl.rlSetUniform(u.speed_range, &speed_range, U_TYPE_VEC2, 1);
 
     const next_particle_state = system.particle_state[1 - system.particle_state_index];
-
+    rl.gl.rlBindShaderBuffer(system.atlases, 6);
     rl.gl.rlBindShaderBuffer(next_particle_state, @intFromEnum(ComputeBufLoc.next_particle_state));
     rl.gl.rlBindShaderBuffer(system.alive_count, @intFromEnum(ComputeBufLoc.alive_count));
 

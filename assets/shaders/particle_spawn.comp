@@ -2,24 +2,32 @@
 
 #define PI 3.14159265359;
 
+// struct GpuTextureAtlas {
+//     // --- 16 bytes ---
+//     uvec2 handle;           // 8
+//     uvec2 grid;             // 8
+//     // --- 16 bytes ---
+//     vec2 cellSizeUV;        // 8
+//     uint _pad0;             // 4
+//     uint _pad1;             // 4
+// };
+
 struct ParticleState {
     // --- 16 bytes ---
     vec2 position;          // 8
     vec2 velocity;          // 8
-
     // --- 16 bytes ---
     vec4 color;             // 16
-
     // --- 16 bytes ---
-    uvec2 atlasHandle;      // 8
-    uint  atlasCols;        // 4
-    uint  atlasRows;        // 4
-
+    uint atlasId;           // 4
+    uint atlasCellIndex;    // 4
+    uint _pad0;             // 4
+    uint _pad1;             // 4
     // --- 16 bytes ---
-    uint  atlasCellIndex;   // 4
     float lifetimeSec;      // 4
     float rotation;         // 4
     float scale;            // 4
+    uint _pad2;             // 4
 };
 
 layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
@@ -32,9 +40,10 @@ layout(location = 1) uniform int count;
 layout(location = 2) uniform float globalSeed;
 layout(location = 3) uniform vec2 position;
 layout(location = 4) uniform float spawnRadius;
-layout(location = 5) uniform uvec2 atlasHandle;     // split u64
-layout(location = 7) uniform int atlasCellCols;
-layout(location = 8) uniform int atlasCellRows;
+layout(location = 5) uniform uint atlasId;
+// layout(location = 5) uniform uvec2 atlasHandle;     // split u64
+// layout(location = 7) uniform int atlasCellCols;
+// layout(location = 8) uniform int atlasCellRows;
 layout(location = 9) uniform vec4 color;
 layout(location = 10) uniform vec2 scaleRange;
 layout(location = 11) uniform vec2 speedRange;
@@ -89,15 +98,23 @@ void main() {
     vec2 velocity = dir * randRange(rng, speedRange.x, speedRange.y);
 
     nextState[index] = ParticleState(
+        // 16
         finalPos,
         velocity,
+        // 16
         color,
-        atlasHandle,
-        atlasCellCols,
-        atlasCellRows,
+        // 16
+        atlasId,
         cellIndex,
+        0,
+        0,
+        // atlasHandle,
+        // atlasCellCols,
+        // atlasCellRows,
+        // 16
         lifetimeSec,
         initialRotation,
-        scale
+        scale,
+        0
     );
 }

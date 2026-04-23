@@ -1,24 +1,33 @@
 #version 430
 
+struct GpuTextureAtlas {
+    // --- 16 bytes ---
+    uvec2 handle;           // 8
+    uvec2 grid;             // 8
+    // --- 16 bytes ---
+    vec2 cellSizeUV;        // 8
+    uint _pad0;             // 4
+    uint _pad1;             // 4
+};
+
 struct ParticleState {
     // --- 16 bytes ---
     vec2 position;          // 8
     vec2 velocity;          // 8
-
     // --- 16 bytes ---
     vec4 color;             // 16
-
     // --- 16 bytes ---
-    uvec2 atlasHandle;      // 8
-    uint  atlasCols;        // 4
-    uint  atlasRows;        // 4
-
+    uint atlasId;           // 4
+    uint atlasCellIndex;    // 4
+    uint _pad0;             // 4
+    uint _pad1;             // 4
     // --- 16 bytes ---
-    uint  atlasCellIndex;   // 4
     float lifetimeSec;      // 4
     float rotation;         // 4
     float scale;            // 4
+    uint _pad2;             // 4
 };
+
 
 layout(location = 0) in vec2 quadLocalPos;
 
@@ -29,30 +38,31 @@ layout(location = 1) uniform mat4 projection;
 // layout(location = 4) uniform int atlasTexWidth;
 // layout(location = 5) uniform int atlasTexHeight;
 // layout(location = 6) uniform vec2 viewportSize; // px
-layout(location = 8) uniform vec2 atlasCellSizeUV;
-
+// layout(location = 8) uniform vec2 atlasCellSizeUV;
 layout(std430, binding = 4) buffer CurrentParticleState { ParticleState currentState[]; };
+layout(std430, binding = 6) buffer AtlasTable { GpuTextureAtlas atlases[]; };
 
 out flat uvec2 fragHandle;
-out vec2 fragUV;
-out float fragCellV;
+out vec2 cleanUV;
+out vec2 blurUV;
+// out vec2 fragUV;
+// out float fragCellV;
 out vec4 tintColor;
 
 void main() {
     int index = gl_InstanceID;
     ParticleState p = currentState[index];
+    GpuTextureAtlas atlas = atlases[p.atlasId];
 
     tintColor = p.color;
-    fragHandle = p.atlasHandle;
-    // float cellU = float(cellWidthPx) / float(atlasTexWidth);
-    // float cellV = float(cellHeightPx) / float(atlasTexHeight);
-    fragCellV = atlasCellSizeUV.y;
-
-    uint col = p.atlasCellIndex % p.atlasCols;
-    uint row = p.atlasCellIndex / p.atlasCols;
-    vec2 cellOffset = vec2(float(col) * atlasCellSizeUV.x, float(row) * cellV);
+    fragHandle = atlas.handle;
+    uint col = p.atlasCellIndex % atlas.grid.x;
+    uint row = p.atlasCellIndex / atlas.grid.x;
+    vec2 cellOffset = vec2(col, row) * atlas.cellSizeUV;
     vec2 baseUV = quadLocalPos + vec2(0.5);
-    fragUV = cellOffset + baseUV * vec2(atlasCellSizeUV.x, atlasCellSizeUV.y);
+
+    cleanUV = cellOffset + baseUV * atlas.cellSizeUV;
+    blurUV = cleanUV + vec2(0.0, atlas.cellSizeUV.y);
 
     float angleSin = sin(p.rotation);
     float angleCos = cos(p.rotation);

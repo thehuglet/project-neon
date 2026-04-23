@@ -2,7 +2,7 @@ const Context = @import("context").Context;
 const ECS = @import("ecs").ECS;
 const EntityId = @import("ecs").EntityId;
 const TextureAtlas = @import("context").TextureAtlas;
-const GpuTextureAtlas = @import("context").GPUTextureAtlas;
+const GpuTextureAtlas = @import("context").GpuTextureAtlas;
 
 const context = @import("context");
 const std = @import("std");
@@ -52,8 +52,11 @@ pub fn main() !void {
         .roto = .init("assets/gen_textures/atlases/roto_atlas.png", 96, 96),
         .projectile = .init("assets/gen_textures/atlases/projectile_atlas.png", 96, 96),
     });
-    const gpu_atlases: std.EnumMap(enums.AtlasId, GpuTextureAtlas) = .init();
-    // const gpu_texture_atlases =
+    var gpu_atlases: std.EnumMap(enums.AtlasId, GpuTextureAtlas) = .init(.{
+        .cube = context.buildGpuTextureAtlas(atlases.get(.cube).?),
+        .roto = context.buildGpuTextureAtlas(atlases.get(.roto).?),
+        .projectile = context.buildGpuTextureAtlas(atlases.get(.projectile).?),
+    });
     var ctx = Context{
         .ecs = ECS.init(allocator),
         .allocator = allocator,
@@ -63,7 +66,7 @@ pub fn main() !void {
             .height = 1080,
         },
         .atlases = atlases,
-        .gpu_atlses = gpu_atlases,
+        .gpu_atlases = gpu_atlases,
         .shaders = .init(.{
             .neon_sprite = try rl.loadShader(
                 "assets/shaders/neon_sprite.vert",
@@ -86,7 +89,7 @@ pub fn main() !void {
             .show_hurtboxes = false,
             .show_hitboxes = false,
         },
-        .particle_system = particle.init(allocator),
+        .particle_system = particle.init(allocator, &gpu_atlases),
         .player_input_state = .{
             .move_up = false,
             .move_down = false,
@@ -161,7 +164,7 @@ pub fn main() !void {
         // --- Canvas drawing ---
         rl.beginTextureMode(canvas);
         draw(&ctx);
-        particle.draw(&ctx.particle_system, ctx.shaders.get(.particle).?, ctx.canvas_size.width, ctx.canvas_size.height);
+        particle.draw(&ctx.particle_system, ctx.shaders.get(.particle).?);
         rl.endTextureMode();
 
         // --- Post-draw update ---
@@ -226,13 +229,13 @@ fn update(ctx: *Context) void {
     }
 
     if (rl.isKeyDown(.f)) {
-        const atlas = ctx.atlases.get(.cube).?;
+        // const atlas = ctx.atlases.get(.cube).?;
         particle.spawnBurst(
             &ctx.particle_system,
             .{ .x = 0.0, .y = 0.0 },
             .{
                 .color = .lime,
-                .texture = .{ .atlas = atlas, .cell_index = 0 },
+                .texture = .{ .atlas_id = .cube, .cell_index = 0 },
                 .speed = .{ .range = .{ .min = 0.5, .max = 3.0 } },
                 .scale = .{ .range = .{ .min = 0.2, .max = 1.0 } },
                 .lifetime_sec = .{ .flat = 1.5 },

@@ -56,10 +56,15 @@ pub const TextureAtlas = struct {
     }
 };
 
+/// Mirrors GPU layout.
 pub const GpuTextureAtlas = struct {
-    handle: @Vector(2, u32),
-    grid: @Vector(2, u32),
-    cell_size_uv: @Vector(2, f32),
+    // --- 16 bytes ---
+    handle: @Vector(2, u32), // 8
+    grid: @Vector(2, u32), // 8
+    // --- 16 bytes ---
+    cellSizeUV: @Vector(2, f32), // 8
+    _pad0: u32, // 4
+    _pad1: u32, // 4
 };
 
 pub const PlayerInputState = struct {
@@ -141,10 +146,19 @@ pub fn setupGlBindlessFnPtrs(get: GlGetTextureHandleFnPtr, make: GlMakeTextureHa
     glMakeResident = make;
 }
 
-pub fn buildGpuAtlas(atlas: TextureAtlas) GpuTextureAtlas {
+pub fn buildGpuTextureAtlas(atlas: TextureAtlas) GpuTextureAtlas {
+    const handle_lo: u32 = @intCast(atlas.bindless_handle & 0xFFFFFFFF);
+    const handle_hi: u32 = @intCast(atlas.bindless_handle >> 32);
+    const tex_w = @as(f32, @floatFromInt(atlas.texture.width));
+    const tex_h = @as(f32, @floatFromInt(atlas.texture.height));
+    const cell_w = @as(f32, @floatFromInt(atlas.cell_width));
+    const cell_h = @as(f32, @floatFromInt(atlas.cell_height));
+
     return .{
-        .handle = atlas.bindless_handle,
+        .handle = .{ handle_lo, handle_hi },
         .grid = .{ @intCast(atlas.cols), @intCast(atlas.rows) },
-        .cell_size_uv = atlas.cell_size_uv,
+        .cellSizeUV = .{ cell_w / tex_w, cell_h / tex_h },
+        ._pad0 = 0,
+        ._pad1 = 0,
     };
 }
