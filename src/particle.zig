@@ -361,7 +361,7 @@ pub fn spawnBurst(
     spec: Spec,
 ) void {
     // TODO: implement these properly:
-    const count: u32 = 7;
+    const count: u32 = 4;
     const spawn_radius: f32 = 100.0;
 
     const groups: u32 = (count + 1023) / 1024;

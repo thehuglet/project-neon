@@ -43,9 +43,10 @@ void main() {
         p.lifetimeSec = newLifetimeSec;
         p.position += p.velocity * deltaTime;
 
+        float dragCoeff = 0.001;
         float speed = length(p.velocity);
-        vec2 dragForce = p.velocity * -2.0 * speed * deltaTime;
-        p.velocity += dragForce;
+        float damping = 1.0 / (1.0 + dragCoeff * speed * deltaTime);
+        p.velocity *= damping;
 
         nextState[outIndex] = p;
     }

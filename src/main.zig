@@ -232,11 +232,11 @@ fn update(ctx: *Context) void {
         // const atlas = ctx.atlases.get(.cube).?;
         particle.spawnBurst(
             &ctx.particle_system,
-            .{ .x = 500.0, .y = 100.0 },
+            .{ .x = 1920.0 * 0.5, .y = 1080.0 * 0.5 },
             .{
-                .color = .lime,
+                .color = .init(ctx.rng.int(u8), ctx.rng.int(u8), ctx.rng.int(u8), 255),
                 .texture = .{ .atlas_id = .cube, .cell_index = 0 },
-                .speed = .{ .range = .{ .min = 10.0, .max = 50.0 } },
+                .speed = .{ .range = .{ .min = 1000.0, .max = 2000.0 } },
                 .scale = .{ .range = .{ .min = 1000.0, .max = 1000.0 } },
                 .lifetime_sec = .{ .flat = 1.5 },
             },
@@ -285,7 +285,7 @@ fn draw(ctx: *Context) void {
 fn updatePost(ctx: *Context) void {
     system.oneTickHitbox(ctx);
     // TODO: fix the death related logic, its a mess
-    system.despawnOOBEntities(ctx, 50.0);
+    system.despawnOOBEntities(ctx, -200.0);
     system.lifetimeDespawn(&ctx.ecs);
     system.zeroHealthDeath(&ctx.ecs, ctx.rng);
     system.onDeath(&ctx.ecs, ctx.rng);
