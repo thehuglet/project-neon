@@ -97,7 +97,7 @@ void main() {
     vec2 dir = vec2(cos(angle), sin(angle));
     vec2 velocity = dir * randRange(rng, speedRange.x, speedRange.y);
 
-    nextState[index] = ParticleState(
+    nextState[outIndex] = ParticleState(
         // 16
         finalPos,
         velocity,

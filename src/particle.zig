@@ -66,7 +66,7 @@ const DrawIndirectData = struct {
 };
 
 /// Mirrors GPU layout.
-const ParticleState = struct {
+const ParticleState = extern struct {
     // --- 16 bytes ---
     position: @Vector(2, f32), // 8
     velocity: @Vector(2, f32), // 8
@@ -111,9 +111,9 @@ pub const ParticleSystem = struct {
         scale_range: i32,
         speed_range: i32,
     },
-    draw_uniforms: struct {
-        projection: i32,
-    },
+    // draw_uniforms: struct {
+    //     projection: i32,
+    // },
     // --- Buffer handles ---
     atlases: u32,
     alive_count: u32,

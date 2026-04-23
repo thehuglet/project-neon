@@ -57,7 +57,7 @@ pub const TextureAtlas = struct {
 };
 
 /// Mirrors GPU layout.
-pub const GpuTextureAtlas = struct {
+pub const GpuTextureAtlas = extern struct {
     // --- 16 bytes ---
     handle: @Vector(2, u32), // 8
     grid: @Vector(2, u32), // 8
