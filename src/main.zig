@@ -232,11 +232,11 @@ fn update(ctx: *Context) void {
         // const atlas = ctx.atlases.get(.cube).?;
         particle.spawnBurst(
             &ctx.particle_system,
-            .{ .x = 1.0, .y = 1.0 },
+            .{ .x = 500.0, .y = 100.0 },
             .{
                 .color = .lime,
                 .texture = .{ .atlas_id = .cube, .cell_index = 0 },
-                .speed = .{ .range = .{ .min = 100.0, .max = 200.0 } },
+                .speed = .{ .range = .{ .min = 10.0, .max = 50.0 } },
                 .scale = .{ .range = .{ .min = 1000.0, .max = 1000.0 } },
                 .lifetime_sec = .{ .flat = 1.5 },
             },

@@ -4,20 +4,18 @@ struct ParticleState {
     // --- 16 bytes ---
     vec2 position;          // 8
     vec2 velocity;          // 8
-
     // --- 16 bytes ---
     vec4 color;             // 16
-
     // --- 16 bytes ---
-    uvec2 atlasHandle;      // 8
-    uint  atlasCols;        // 4
-    uint  atlasRows;        // 4
-
+    uint atlasId;           // 4
+    uint atlasCellIndex;    // 4
+    uint _pad0;             // 4
+    uint _pad1;             // 4
     // --- 16 bytes ---
-    uint  atlasCellIndex;   // 4
     float lifetimeSec;      // 4
     float rotation;         // 4
     float scale;            // 4
+    uint _pad2;             // 4
 };
 
 layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;

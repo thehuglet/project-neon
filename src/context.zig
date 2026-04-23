@@ -59,10 +59,13 @@ pub const TextureAtlas = struct {
 /// Mirrors GPU layout.
 pub const GpuTextureAtlas = extern struct {
     // --- 16 bytes ---
-    handle: @Vector(2, u32), // 8
-    grid: @Vector(2, u32), // 8
+    handle_lo: u32, // 4
+    handle_hi: u32, // 4
+    grid_x: u32, // 4
+    grid_y: u32, // 4
     // --- 16 bytes ---
-    cellSizeUV: @Vector(2, f32), // 8
+    cell_w: f32, // 4
+    cell_h: f32, // 4
     _pad0: u32, // 4
     _pad1: u32, // 4
 };
@@ -155,9 +158,12 @@ pub fn buildGpuTextureAtlas(atlas: TextureAtlas) GpuTextureAtlas {
     const cell_h = @as(f32, @floatFromInt(atlas.cell_height));
 
     return .{
-        .handle = .{ handle_lo, handle_hi },
-        .grid = .{ @intCast(atlas.cols), @intCast(atlas.rows) },
-        .cellSizeUV = .{ cell_w / tex_w, cell_h / tex_h },
+        .handle_lo = handle_lo,
+        .handle_hi = handle_hi,
+        .grid_x = @intCast(atlas.cols),
+        .grid_y = @intCast(atlas.rows),
+        .cell_w = cell_w / tex_w,
+        .cell_h = cell_h / tex_h,
         ._pad0 = 0,
         ._pad1 = 0,
     };

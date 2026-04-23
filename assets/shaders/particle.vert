@@ -74,5 +74,5 @@ void main() {
 
     vec2 vertex = rotationMatrix * quadLocalPos * finalScale;
     vec2 worldPos = p.position + vertex;
-    gl_Position = projection * vec4(worldPos, 0, 1);
+    gl_Position = projection * vec4(worldPos, 0.0, 1.0);
 }

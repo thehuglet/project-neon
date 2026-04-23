@@ -67,24 +67,26 @@ const DrawIndirectData = struct {
 
 /// Mirrors GPU layout.
 const ParticleState = extern struct {
-    // --- 16 bytes ---
-    position: @Vector(2, f32), // 8
-    velocity: @Vector(2, f32), // 8
-    // --- 16 bytes ---
-    color: @Vector(4, f32), // 16
-    // --- 16 bytes ---
-    atlasId: u32, // 4
-    atlasCellIndex: u32, // 4
-    _pad0: u32, // 4
-    _pad1: u32, // 4
-    // atlasHandle: @Vector(2, u32) align(8),
-    // atlasCols: u32,
-    // atlasRows: u32,
-    // --- 16 bytes ---
-    lifetimeSec: f32, // 4
-    rotation: f32, // 4
-    scale: f32, // 4
-    _pad2: u32, // 4
+    // --- 16 ---
+    position_x: f32,
+    position_y: f32,
+    velocity_x: f32,
+    velocity_y: f32,
+    // --- 16 ---
+    color_r: f32,
+    color_g: f32,
+    color_b: f32,
+    color_a: f32,
+    // --- 16 ---
+    atlas_id: u32,
+    atlas_cell_index: u32,
+    _pad0: u32,
+    _pad1: u32,
+    // --- 16 ---
+    lifetime_sec: f32,
+    rotation: f32,
+    scale: f32,
+    _pad2: u32,
 };
 
 pub const ParticleSystem = struct {
@@ -140,17 +142,22 @@ pub fn init(
     for (initial_particle_state) |*p| {
         p.* = .{
             // --- 16 ---
-            .position = .{ 0.0, 0.0 },
-            .velocity = .{ 0.0, 0.0 },
+            .position_x = 0.0,
+            .position_y = 0.0,
+            .velocity_x = 0.0,
+            .velocity_y = 0.0,
             // --- 16 ---
-            .color = .{ 0.0, 0.0, 0.0, 0.0 },
+            .color_r = 0.0,
+            .color_g = 0.0,
+            .color_b = 0.0,
+            .color_a = 0.0,
             // --- 16 ---
-            .atlasId = 0,
-            .atlasCellIndex = 0,
+            .atlas_id = 0,
+            .atlas_cell_index = 0,
             ._pad0 = 0,
             ._pad1 = 0,
             // --- 16 ---
-            .lifetimeSec = 0.0,
+            .lifetime_sec = 0.0,
             .rotation = 0.0,
             .scale = 0.0,
             ._pad2 = 0,
@@ -168,7 +175,6 @@ pub fn init(
             rl.gl.rl_dynamic_copy,
         ),
     };
-
     var atlas_array: [MAX_GPU_TEXTURE_ATLASES]GpuTextureAtlas = undefined;
     {
         var iter = gpu_atlases.iterator();
@@ -356,7 +362,7 @@ pub fn spawnBurst(
 ) void {
     // TODO: implement these properly:
     const count: u32 = 7;
-    const spawn_radius: f32 = 0.0;
+    const spawn_radius: f32 = 100.0;
 
     const groups: u32 = (count + 1023) / 1024;
     const seed: f32 = @floatCast(rl.getTime());
