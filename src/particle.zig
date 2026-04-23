@@ -367,7 +367,7 @@ pub fn spawnBurst(
         .flat => |s| rl.Vector2{ .x = s, .y = s },
         .range => |r| rl.Vector2{ .x = r.min, .y = r.max },
     };
-    const speed_range: rl.Vector2 = switch (spec.scale) {
+    const speed_range: rl.Vector2 = switch (spec.speed) {
         .flat => |s| rl.Vector2{ .x = s, .y = s },
         .range => |r| rl.Vector2{ .x = r.min, .y = r.max },
     };
