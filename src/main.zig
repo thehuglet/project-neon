@@ -134,16 +134,16 @@ pub fn main() !void {
         const viewport_width: f32 = @floatFromInt(ctx.canvas_size.width);
         const viewport_height: f32 = @floatFromInt(ctx.canvas_size.height);
 
-        const aspect_ratio: f32 = viewport_width / viewport_height;
+        // const aspect_ratio: f32 = viewport_width / viewport_height;
         const ortho = rl.math.matrixOrtho(
-            -aspect_ratio,
-            aspect_ratio,
-            -1.0,
-            1.0,
-            0.0,
-            10.0,
+            0,
+            viewport_width,
+            0,
+            viewport_height,
+            0,
+            10,
         );
-        // const ortho: rl.Matrix = rl.math.matrixOrtho(-1.0, 1.0, -1.0, 1.0, 0.0, 10.0);
+
         const projection_loc: i32 = rl.getShaderLocation(shader, "projection");
         rl.setShaderValueMatrix(shader, projection_loc, ortho);
     }
@@ -232,12 +232,12 @@ fn update(ctx: *Context) void {
         // const atlas = ctx.atlases.get(.cube).?;
         particle.spawnBurst(
             &ctx.particle_system,
-            .{ .x = 0.0, .y = 0.0 },
+            .{ .x = 1.0, .y = 1.0 },
             .{
                 .color = .lime,
                 .texture = .{ .atlas_id = .cube, .cell_index = 0 },
-                .speed = .{ .range = .{ .min = 0.5, .max = 3.0 } },
-                .scale = .{ .range = .{ .min = 0.2, .max = 1.0 } },
+                .speed = .{ .range = .{ .min = 100.0, .max = 200.0 } },
+                .scale = .{ .range = .{ .min = 1000.0, .max = 1000.0 } },
                 .lifetime_sec = .{ .flat = 1.5 },
             },
         );
