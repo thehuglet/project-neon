@@ -21,19 +21,13 @@ const ZERO: u32 = 0;
 const MAX_GPU_TEXTURE_ATLASES = 64;
 
 pub const Spec = struct {
-    color: rl.Color,
-    speed: union(enum) {
-        flat: f32,
-        range: types.Range,
-    },
-    scale: union(enum) {
-        flat: f32,
-        range: types.Range,
-    },
-    lifetime_sec: union(enum) {
-        flat: f32,
-        range: types.Range,
-    },
+    color: rl.Color = .pink,
+    speed: types.F32FlatOrRange = .{ .flat = 100.0 },
+    scale: types.F32FlatOrRange = .{ .flat = 1.0 },
+    scale_over_t: f32 = 1.0,
+    alpha_over_t: f32 = 1.0,
+    hue_shift_over_t: f32 = 0.0,
+    lifetime_sec: types.F32FlatOrRange = .{ .flat = 3.0 },
     texture: struct {
         atlas_id: enums.AtlasId,
         cell_index: u32,
@@ -68,25 +62,30 @@ const DrawIndirectData = struct {
 /// Mirrors GPU layout.
 const ParticleState = extern struct {
     // --- 16 ---
-    position_x: f32,
-    position_y: f32,
-    velocity_x: f32,
-    velocity_y: f32,
+    position_x: f32 = 0.0,
+    position_y: f32 = 0.0,
+    velocity_x: f32 = 0.0,
+    velocity_y: f32 = 0.0,
     // --- 16 ---
-    color_r: f32,
-    color_g: f32,
-    color_b: f32,
-    color_a: f32,
+    color_r: f32 = 0.0,
+    color_g: f32 = 0.0,
+    color_b: f32 = 0.0,
+    color_a: f32 = 0.0,
     // --- 16 ---
-    atlas_id: u32,
-    atlas_cell_index: u32,
-    _pad0: u32,
-    _pad1: u32,
+    atlas_id: u32 = 0,
+    atlas_cell_index: u32 = 0,
+    initial_lifetime_sec: f32 = 0.0,
+    lifetime_sec: f32 = 0.0,
     // --- 16 ---
-    lifetime_sec: f32,
-    rotation: f32,
-    scale: f32,
-    _pad2: u32,
+    rotation: f32 = 0.0,
+    spin_speed: f32 = 0.0,
+    scale: f32 = 0.0,
+    scale_over_t: f32 = 0.0,
+    // --- 16 ---
+    alpha_over_t: f32 = 0.0,
+    hueShiftOverT: f32 = 0.0,
+    _pad1: u32 = 0,
+    _pad2: u32 = 0,
 };
 
 pub const ParticleSystem = struct {
@@ -100,18 +99,20 @@ pub const ParticleSystem = struct {
         delta_time: i32,
     },
     spawn_shader_uniforms: struct {
+        seed: i32,
         max_particles: i32,
         count: i32,
-        global_seed: i32,
+        atlas_id: i32,
+        atlas_cell_index: i32,
         position: i32,
         spawn_radius: i32,
-        atlas_id: i32,
-        // atlas_handle: i32,
-        // atlas_cell_cols: i32,
-        // atlas_cell_rows: i32,
         color: i32,
-        scale_range: i32,
-        speed_range: i32,
+        speed: i32,
+        scale: i32,
+        scale_over_t: i32,
+        alpha_over_t: i32,
+        hue_shift_over_t: i32,
+        lifetime_sec: i32,
     },
     // draw_uniforms: struct {
     //     projection: i32,
@@ -140,28 +141,7 @@ pub fn init(
     defer allocator.free(initial_particle_state);
 
     for (initial_particle_state) |*p| {
-        p.* = .{
-            // --- 16 ---
-            .position_x = 0.0,
-            .position_y = 0.0,
-            .velocity_x = 0.0,
-            .velocity_y = 0.0,
-            // --- 16 ---
-            .color_r = 0.0,
-            .color_g = 0.0,
-            .color_b = 0.0,
-            .color_a = 0.0,
-            // --- 16 ---
-            .atlas_id = 0,
-            .atlas_cell_index = 0,
-            ._pad0 = 0,
-            ._pad1 = 0,
-            // --- 16 ---
-            .lifetime_sec = 0.0,
-            .rotation = 0.0,
-            .scale = 0.0,
-            ._pad2 = 0,
-        };
+        p.* = .{};
     }
     const particle_state = [_]u32{
         rl.gl.rlLoadShaderBuffer(
@@ -228,6 +208,8 @@ pub fn init(
     rl.gl.rlSetVertexAttribute(0, 2, rl.gl.rl_float, false, 0, 0);
     rl.gl.rlDisableVertexArray();
 
+    const uni = rl.gl.rlGetLocationUniform;
+
     return ParticleSystem{
         .max_particles = max_particles,
         .vao = vao,
@@ -235,21 +217,23 @@ pub fn init(
         .spawn_shader = spawn_shader,
         .indirect_cmd_shader = indirect_cmd_shader,
         .update_shader_uniforms = .{
-            .delta_time = rl.gl.rlGetLocationUniform(update_shader, "deltaTime"),
+            .delta_time = uni(update_shader, "deltaTime"),
         },
         .spawn_shader_uniforms = .{
-            .max_particles = rl.gl.rlGetLocationUniform(spawn_shader, "maxParticles"),
-            .count = rl.gl.rlGetLocationUniform(spawn_shader, "count"),
-            .global_seed = rl.gl.rlGetLocationUniform(spawn_shader, "globalSeed"),
-            .position = rl.gl.rlGetLocationUniform(spawn_shader, "position"),
-            .spawn_radius = rl.gl.rlGetLocationUniform(spawn_shader, "spawnRadius"),
-            .atlas_id = rl.gl.rlGetLocationUniform(spawn_shader, "atlasId"),
-            // .atlas_handle = rl.gl.rlGetLocationUniform(spawn_shader, "atlasHandle"),
-            // .atlas_cell_cols = rl.gl.rlGetLocationUniform(spawn_shader, "atlasCellCols"),
-            // .atlas_cell_rows = rl.gl.rlGetLocationUniform(spawn_shader, "atlasCellRows"),
-            .color = rl.gl.rlGetLocationUniform(spawn_shader, "color"),
-            .scale_range = rl.gl.rlGetLocationUniform(spawn_shader, "scaleRange"),
-            .speed_range = rl.gl.rlGetLocationUniform(spawn_shader, "speedRange"),
+            .max_particles = uni(spawn_shader, "maxParticles"),
+            .count = uni(spawn_shader, "count"),
+            .seed = uni(spawn_shader, "seed"),
+            .position = uni(spawn_shader, "position"),
+            .spawn_radius = uni(spawn_shader, "spawnRadius"),
+            .atlas_id = uni(spawn_shader, "atlasId"),
+            .atlas_cell_index = uni(spawn_shader, "atlasCellIndex"),
+            .color = uni(spawn_shader, "color"),
+            .speed = uni(spawn_shader, "speed"),
+            .scale = uni(spawn_shader, "scale"),
+            .scale_over_t = uni(spawn_shader, "scaleOverT"),
+            .alpha_over_t = uni(spawn_shader, "alphaOverT"),
+            .hue_shift_over_t = uni(spawn_shader, "hueShiftOverT"),
+            .lifetime_sec = uni(spawn_shader, "lifetimeSec"),
         },
         .atlases = buf_atlases,
         .alive_count = buf_alive_count,
@@ -339,13 +323,13 @@ pub fn draw(system: *ParticleSystem, particle_shader: rl.Shader) void {
     rl.gl.rlBindShaderBuffer(current_particle_state, @intFromEnum(ComputeBufLoc.current_particle_state));
     _ = rl.gl.rlEnableVertexArray(system.vao);
     c_glad.glBindBuffer(c_glad.GL_DRAW_INDIRECT_BUFFER, system.indirect_draw_args);
-
     // --- Blur pass ---
+
     const pass0: u32 = 0;
     rl.setShaderValue(particle_shader, 7, &pass0, rl.ShaderUniformDataType.int);
     c_glad.glDrawArraysIndirect(c_glad.GL_TRIANGLES, null);
 
-    // // --- Clean pass ---
+    // --- Clean pass ---
     const pass1: u32 = 1;
     rl.setShaderValue(particle_shader, 7, &pass1, rl.ShaderUniformDataType.int);
     c_glad.glDrawArraysIndirect(c_glad.GL_TRIANGLES, null);
@@ -355,55 +339,45 @@ pub fn draw(system: *ParticleSystem, particle_shader: rl.Shader) void {
     rl.endShaderMode();
 }
 
-pub fn spawnBurst(
-    system: *ParticleSystem,
-    pos: rl.Vector2,
-    spec: Spec,
-) void {
+pub fn spawnBurst(system: *ParticleSystem, pos: rl.Vector2, spec: Spec) void {
     // TODO: implement these properly:
-    const count: u32 = 4;
-    const spawn_radius: f32 = 100.0;
+    //
+    const count: u32 = 10;
+    const spawn_radius: f32 = 0.0;
 
     const groups: u32 = (count + 1023) / 1024;
     const seed: f32 = @floatCast(rl.getTime());
+    const scale: rl.Vector2 = spec.scale.toF32Range().toVec2();
+    const speed: rl.Vector2 = spec.speed.toF32Range().toVec2();
+    const lifetime_sec: rl.Vector2 = spec.lifetime_sec.toF32Range().toVec2();
+    const atlas_id: i32 = @intFromEnum(spec.texture.atlas_id);
+    const atlas_cell_index: i32 = @intCast(spec.texture.cell_index);
+    const color_normalized: rl.Vector4 = spec.color.normalize();
+    const u = &system.spawn_shader_uniforms;
+    const next_particle_state = system.particle_state[1 - system.particle_state_index];
 
     rl.gl.rlEnableShader(system.spawn_shader);
 
-    const scale_range: rl.Vector2 = switch (spec.scale) {
-        .flat => |s| rl.Vector2{ .x = s, .y = s },
-        .range => |r| rl.Vector2{ .x = r.min, .y = r.max },
-    };
-    const speed_range: rl.Vector2 = switch (spec.speed) {
-        .flat => |s| rl.Vector2{ .x = s, .y = s },
-        .range => |r| rl.Vector2{ .x = r.min, .y = r.max },
-    };
-
-    const u = &system.spawn_shader_uniforms;
     rl.gl.rlSetUniform(u.max_particles, &system.max_particles, U_TYPE_INT, 1);
     rl.gl.rlSetUniform(u.count, &count, U_TYPE_INT, 1);
-    rl.gl.rlSetUniform(u.global_seed, &seed, U_TYPE_FLOAT, 1);
+    rl.gl.rlSetUniform(u.seed, &seed, U_TYPE_FLOAT, 1);
     rl.gl.rlSetUniform(u.position, &pos, U_TYPE_VEC2, 1);
     rl.gl.rlSetUniform(u.spawn_radius, &spawn_radius, U_TYPE_FLOAT, 1);
-    const atlas_id = @intFromEnum(spec.texture.atlas_id);
     rl.gl.rlSetUniform(u.atlas_id, &atlas_id, U_TYPE_INT, 1);
-    // const handle = spec.texture.atlas.bindless_handle;
-    // const handle_lo: u32 = @truncate(handle);
-    // const handle_hi: u32 = @truncate(handle >> 32);
-    // c_glad.glUniform2ui(5, handle_lo, handle_hi);
-    // rl.gl.rlSetUniform(7, &spec.texture.atlas.cols, @intFromEnum(rl.ShaderUniformDataType.int), 1);
-    // rl.gl.rlSetUniform(8, &spec.texture.atlas.rows, @intFromEnum(rl.ShaderUniformDataType.int), 1);
-    const color_normalized: rl.Vector4 = spec.color.normalize();
+    rl.gl.rlSetUniform(u.atlas_cell_index, &atlas_cell_index, U_TYPE_INT, 1);
     rl.gl.rlSetUniform(u.color, &color_normalized, U_TYPE_VEC4, 1);
-    rl.gl.rlSetUniform(u.scale_range, &scale_range, U_TYPE_VEC2, 1);
-    rl.gl.rlSetUniform(u.speed_range, &speed_range, U_TYPE_VEC2, 1);
+    rl.gl.rlSetUniform(u.scale, &scale, U_TYPE_VEC2, 1);
+    rl.gl.rlSetUniform(u.scale_over_t, &spec.scale_over_t, U_TYPE_FLOAT, 1);
+    rl.gl.rlSetUniform(u.alpha_over_t, &spec.alpha_over_t, U_TYPE_FLOAT, 1);
+    rl.gl.rlSetUniform(u.hue_shift_over_t, &spec.hue_shift_over_t, U_TYPE_FLOAT, 1);
+    rl.gl.rlSetUniform(u.speed, &speed, U_TYPE_VEC2, 1);
+    rl.gl.rlSetUniform(u.lifetime_sec, &lifetime_sec, U_TYPE_VEC2, 1);
 
-    const next_particle_state = system.particle_state[1 - system.particle_state_index];
     rl.gl.rlBindShaderBuffer(system.atlases, 6);
     rl.gl.rlBindShaderBuffer(next_particle_state, @intFromEnum(ComputeBufLoc.next_particle_state));
     rl.gl.rlBindShaderBuffer(system.alive_count, @intFromEnum(ComputeBufLoc.alive_count));
 
     rl.gl.rlComputeShaderDispatch(groups, 1, 1);
-
     c_glad.glMemoryBarrier(c_glad.GL_SHADER_STORAGE_BARRIER_BIT);
     rl.gl.rlDisableShader();
 }

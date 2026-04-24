@@ -1,21 +1,26 @@
 #version 430
 
 struct ParticleState {
-    // --- 16 bytes ---
-    vec2 position;          // 8
-    vec2 velocity;          // 8
-    // --- 16 bytes ---
-    vec4 color;             // 16
-    // --- 16 bytes ---
-    uint atlasId;           // 4
-    uint atlasCellIndex;    // 4
-    uint _pad0;             // 4
-    uint _pad1;             // 4
-    // --- 16 bytes ---
-    float lifetimeSec;      // 4
-    float rotation;         // 4
-    float scale;            // 4
-    uint _pad2;             // 4
+    // --- 16 ---
+    vec2 position;
+    vec2 velocity;
+    // --- 16 ---
+    vec4 color;
+    // --- 16 ---
+    int atlasId;
+    int atlasCellIndex;
+    float initialLifetimeSec;
+    float lifetimeSec;
+    // --- 16 ---
+    float rotation;
+    float spinSpeed;
+    float scale;
+    float scaleOverT;
+    // --- 16 ---
+    float alphaOverT;
+    float hueShiftOverT;
+    uint _pad1;
+    uint _pad2;
 };
 
 layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
@@ -43,10 +48,12 @@ void main() {
         p.lifetimeSec = newLifetimeSec;
         p.position += p.velocity * deltaTime;
 
-        float dragCoeff = 0.001;
+        float linearDamp = 0.5;
+        float quadraticDamp = 0.008;
+
         float speed = length(p.velocity);
-        float damping = 1.0 / (1.0 + dragCoeff * speed * deltaTime);
-        p.velocity *= damping;
+        float drag = linearDamp + quadraticDamp * speed;
+        p.velocity *= exp(-drag * deltaTime);
 
         nextState[outIndex] = p;
     }

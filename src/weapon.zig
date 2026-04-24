@@ -2,7 +2,7 @@ const std = @import("std");
 
 const rl = @import("raylib");
 
-const ECS = @import("ecs").ECS;
+const Context = @import("context").Context;
 const EntityId = @import("ecs").EntityId;
 const TextureAtlas = @import("context").TextureAtlas;
 
@@ -91,18 +91,16 @@ pub fn createWeaponInstance(weapon_id: WeaponId) WeaponInstance {
 }
 
 pub fn usePrimary(
-    ecs: *ECS,
-    rng: std.Random,
+    ctx: *Context,
     weapon_id: WeaponId,
     projectile_atlas: TextureAtlas,
     entity: EntityId,
     entity_transform: *c.Transform,
     mouse_pos: rl.Vector2,
 ) void {
-    _ = rng;
     const weapon_part_stats = STATS.get(weapon_id).?.primary;
 
-    const maybe_lumen = ecs.getComponent(entity, c.Lumen);
+    const maybe_lumen = ctx.ecs.getComponent(entity, c.Lumen);
     if (maybe_lumen) |lumen| {
         if (weapon_part_stats.lumen_cost >= lumen.amount) {
             // Not enough lumen
@@ -118,7 +116,7 @@ pub fn usePrimary(
     switch (weapon_id) {
         .noob_gun => {
             _ = e.noob_gun_bullet.spawn(
-                ecs,
+                ctx,
                 entity,
                 weapon_part_stats,
                 projectile_atlas,
@@ -132,18 +130,16 @@ pub fn usePrimary(
 }
 
 pub fn useSecondary(
-    ecs: *ECS,
-    rng: std.Random,
+    ctx: *Context,
     weapon_id: WeaponId,
     projectile_atlas: TextureAtlas,
     entity: EntityId,
     entity_transform: *c.Transform,
     mouse_pos: rl.Vector2,
 ) void {
-    _ = rng;
     const weapon_part_stats = STATS.get(weapon_id).?.secondary;
 
-    const maybe_lumen = ecs.getComponent(entity, c.Lumen);
+    const maybe_lumen = ctx.ecs.getComponent(entity, c.Lumen);
     if (maybe_lumen) |lumen| {
         if (weapon_part_stats.lumen_cost >= lumen.amount) {
             // Not enough lumen
@@ -159,7 +155,7 @@ pub fn useSecondary(
     switch (weapon_id) {
         .noob_gun => {
             _ = e.noob_gun_bomb.spawn(
-                ecs,
+                ctx,
                 entity,
                 weapon_part_stats,
                 projectile_atlas,

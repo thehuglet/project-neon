@@ -30,7 +30,7 @@ pub fn drawNeonSprites(ctx: *Context) void {
             var alpha_scale: f32 = 1.0;
             var scale: f32 = neon_sprite.scale;
             var hue_shift: f32 = 0.0;
-            var lightness_shift: f32 = 0.0;
+            const lightness_shift: f32 = 0.0;
 
             // --- Component-based alterations
             if (ctx.ecs.getComponent(item.entity_id, c.DashTrailGhost)) |ghost| {
@@ -39,7 +39,6 @@ pub fn drawNeonSprites(ctx: *Context) void {
                 hue_shift += ghost.current_hue_shift;
             }
             if (ctx.ecs.getComponent(item.entity_id, c.DamageFlash)) |dmg_flash| {
-                lightness_shift += dmg_flash.current_lightness_shift;
                 alpha_scale *= dmg_flash.current_alpha_scale;
             }
 
@@ -80,13 +79,13 @@ pub fn drawNeonSprites(ctx: *Context) void {
 
             var alpha: f32 = @as(f32, @floatFromInt(neon_sprite.color.a)) / 255.0;
             var scale: f32 = neon_sprite.scale;
-            // var hue_shift: f32 = 0.0;
+            var hue_shift: f32 = 0.0;
 
             // --- Component-based alterations
             if (ctx.ecs.getComponent(item.entity_id, c.DashTrailGhost)) |ghost| {
                 alpha *= ghost.current_alpha_scale;
                 scale *= ghost.current_scale;
-                // hue_shift += ghost.current_hue_shift;
+                hue_shift += ghost.current_hue_shift;
             }
 
             const src: rl.Rectangle = textureSource(

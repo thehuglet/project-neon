@@ -3,6 +3,7 @@ pub const Player = @import("player.zig").Player;
 pub const TargetsPlayer = @import("targets_player.zig").TargetsPlayer;
 pub const DespawnsWhenOOB = @import("despawns_when_oob.zig").DespawnsWhenOOB;
 pub const OneTickHitbox = @import("one_tick_hitbox.zig").OneTickHitbox;
+pub const Dead = @import("dead.zig").Dead;
 
 // Health
 pub const Health = @import("health.zig").Health;
@@ -46,6 +47,7 @@ pub const Registry = [_]struct {
     .{ .component_type = TargetsPlayer, .field_name = "targets_player" },
     .{ .component_type = DespawnsWhenOOB, .field_name = "despawns_when_oob" },
     .{ .component_type = OneTickHitbox, .field_name = "one_tick_hitbox" },
+    .{ .component_type = Dead, .field_name = "dead" },
 
     // Health
     .{ .component_type = Health, .field_name = "health" },

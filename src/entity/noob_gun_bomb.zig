@@ -2,7 +2,7 @@ const std = @import("std");
 
 const rl = @import("raylib");
 
-const ECS = @import("ecs").ECS;
+const Context = @import("context").Context;
 const EntityId = @import("ecs").EntityId;
 const c = @import("component");
 const TextureAtlas = @import("context").TextureAtlas;
@@ -13,9 +13,10 @@ const explosion_entity = @import("explosion.zig");
 const weapon = @import("weapon");
 const math = @import("math");
 const helpers = @import("helpers");
+const particle = @import("particle");
 
 pub fn spawn(
-    ecs: *ECS,
+    ctx: *Context,
     owner: EntityId,
     stats: weapon.WeaponPartStats,
     atlas: TextureAtlas,
@@ -26,43 +27,43 @@ pub fn spawn(
         unreachable;
     }
 
-    const entity_id = ecs.assignEntityId();
+    const entity_id = ctx.ecs.assignEntityId();
 
-    ecs.addComponent(entity_id, c.ProjectileWeaponsStats{
+    ctx.ecs.addComponent(entity_id, c.ProjectileWeaponsStats{
         .stats = stats,
     });
-    ecs.addComponent(entity_id, c.DespawnsWhenOOB{});
-    ecs.addComponent(entity_id, c.Transform{
+    ctx.ecs.addComponent(entity_id, c.DespawnsWhenOOB{});
+    ctx.ecs.addComponent(entity_id, c.Transform{
         .pos = pos,
         .rotation_rad = facing_angle * math.RAD_TO_DEG,
         .scale = 2.5,
     });
-    ecs.addComponent(entity_id, c.Motion{
+    ctx.ecs.addComponent(entity_id, c.Motion{
         .mass = 10.0,
         .friction = 0.0,
         .ignores_drag = true,
         .velocity = math.angleToVec2(facing_angle).scale(1000.0),
     });
-    ecs.addComponent(entity_id, c.NeonSprite{
+    ctx.ecs.addComponent(entity_id, c.NeonSprite{
         .atlas = atlas,
         .sprite_index = 0,
         .color = rl.Color.init(255, 100, 0, 255),
         .scale = 1.0,
     });
-    ecs.addComponent(entity_id, c.Hitbox{
+    ctx.ecs.addComponent(entity_id, c.Hitbox{
         .radius = 8.0,
         .mask = .{ .enemy = true },
         .damage = stats.projectile.explosion.damage,
     });
-    ecs.addComponent(entity_id, c.SpinCosmetic{
+    ctx.ecs.addComponent(entity_id, c.SpinCosmetic{
         .clockwise = false,
         .speed = 60.0,
     });
-    ecs.addComponent(entity_id, c.Owner{
+    ctx.ecs.addComponent(entity_id, c.Owner{
         .entity_id = owner,
     });
 
-    ecs.addComponent(entity_id, c.OnDeath{
+    ctx.ecs.addComponent(entity_id, c.OnDeath{
         .callback = &onDeath,
         .data = c.OnDeath.Data{
             .explosion = .{
@@ -76,59 +77,15 @@ pub fn spawn(
     return entity_id;
 }
 
-fn spawnExplosionParticle(
-    ecs: *ECS,
-    rng: std.Random,
-    neon_sprite: *c.NeonSprite,
-    transform: *c.Transform,
-) void {
-    const entity_id: EntityId = ecs.assignEntityId();
-
-    const lifetime_sec: f32 = 1.0;
-    const direction: rl.Vector2 = math.angleToVec2(helpers.randomFloatRange(rng, 0.0, std.math.pi * 2.0));
-    const force_magnitude: f32 = helpers.randomFloatRange(rng, 20.0, 1100.0);
-
-    const final_velocity = direction.scale(force_magnitude);
-
-    var motion = c.Motion{
-        .mass = 10.0,
-        .friction = 1.0,
-    };
-
-    motion.velocity = final_velocity;
-
-    ecs.addComponent(entity_id, c.DashTrailGhost{
-        .lifetime_sec = lifetime_sec,
-        .remaining_lifetime_sec = lifetime_sec,
-        .hue_shift_over_lifetime = 2.0,
-        .scale_over_lifetime = 0.0,
-    });
-    ecs.addComponent(entity_id, motion);
-    ecs.addComponent(entity_id, c.Transform{
-        .pos = transform.pos,
-        .rotation_rad = helpers.randomFloatRange(rng, 0.0, std.math.pi * 2.0),
-        .scale = transform.scale,
-    });
-    ecs.addComponent(entity_id, c.NeonSprite{
-        .atlas = neon_sprite.atlas,
-        .sprite_index = neon_sprite.sprite_index,
-        .color = neon_sprite.color.alpha(0.35),
-        .rotation_rad = helpers.randomFloatRange(rng, 0.0, std.math.pi * 2.0),
-        .scale = neon_sprite.scale * 0.5,
-        .origin = neon_sprite.origin,
-        .tint_base = neon_sprite.tint_base,
-    });
-}
-
-pub fn onDeath(ecs: *ECS, rng: std.Random, spawner: EntityId, data: c.OnDeath.Data) void {
-    const spawner_transform: *c.Transform = ecs.getComponent(spawner, c.Transform).?;
-    const spawner_owner: *c.Owner = ecs.getComponent(spawner, c.Owner).?;
-    const spawner_neon_sprite: *c.NeonSprite = ecs.getComponent(spawner, c.NeonSprite).?;
+pub fn onDeath(ctx: *Context, spawner: EntityId, data: c.OnDeath.Data) void {
+    const spawner_transform: *c.Transform = ctx.ecs.getComponent(spawner, c.Transform).?;
+    const spawner_owner: *c.Owner = ctx.ecs.getComponent(spawner, c.Owner).?;
+    // const spawner_neon_sprite: *c.NeonSprite = ctx.ecs.getComponent(spawner, c.NeonSprite).?;
 
     switch (data) {
         .explosion => |explosion| {
             _ = explosion_entity.spawn(
-                ecs,
+                ctx,
                 spawner_transform.pos,
                 spawner_owner.entity_id,
                 explosion.damage,
@@ -136,9 +93,24 @@ pub fn onDeath(ecs: *ECS, rng: std.Random, spawner: EntityId, data: c.OnDeath.Da
                 explosion.collision_mask,
             );
 
-            for (0..50) |_| {
-                spawnExplosionParticle(ecs, rng, spawner_neon_sprite, spawner_transform);
-            }
+            particle.spawnBurst(
+                &ctx.particle_system,
+                .{ .x = 1920.0 * 0.5, .y = 1080.0 * 0.5 },
+                .{
+                    .color = rl.Color.init(230, 100, 80, 255).alpha(0.35),
+                    .texture = .{ .atlas_id = .projectile, .cell_index = 0 },
+                    .speed = .{ .range = .{ .min = 50.0, .max = 1000.0 } },
+                    .scale = .{ .range = .{ .min = 100.0, .max = 100.0 } },
+                    .scale_over_t = 0.0,
+                    .alpha_over_t = 0.0,
+                    .hue_shift_over_t = 2.0,
+                    .lifetime_sec = .{ .range = .{ .min = 1.0, .max = 1.0 } },
+                },
+            );
+
+            // for (0..50) |_| {
+            // spawnExplosionParticle(ecs, rng, spawner_neon_sprite, spawner_transform);
+            // }
         },
 
         // else => {

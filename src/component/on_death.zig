@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const ECS = @import("ecs").ECS;
+const Context = @import("context").Context;
 const EntityId = @import("ecs").EntityId;
 const CollisionLayer = @import("context").CollisionLayer;
 
@@ -14,8 +14,7 @@ pub const OnDeath = struct {
     };
 
     const Callback = *const fn (
-        ecs: *ECS,
-        rng: std.Random,
+        ctx: *Context,
         entity_id: EntityId,
         data: Data,
     ) void;

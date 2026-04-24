@@ -2,32 +2,27 @@
 
 #define PI 3.14159265359;
 
-// struct GpuTextureAtlas {
-//     // --- 16 bytes ---
-//     uvec2 handle;           // 8
-//     uvec2 grid;             // 8
-//     // --- 16 bytes ---
-//     vec2 cellSizeUV;        // 8
-//     uint _pad0;             // 4
-//     uint _pad1;             // 4
-// };
-
 struct ParticleState {
-    // --- 16 bytes ---
-    vec2 position;          // 8
-    vec2 velocity;          // 8
-    // --- 16 bytes ---
-    vec4 color;             // 16
-    // --- 16 bytes ---
-    uint atlasId;           // 4
-    uint atlasCellIndex;    // 4
-    uint _pad0;             // 4
-    uint _pad1;             // 4
-    // --- 16 bytes ---
-    float lifetimeSec;      // 4
-    float rotation;         // 4
-    float scale;            // 4
-    uint _pad2;             // 4
+    // --- 16 ---
+    vec2 position;
+    vec2 velocity;
+    // --- 16 ---
+    vec4 color;
+    // --- 16 ---
+    int atlasId;
+    int atlasCellIndex;
+    float initialLifetimeSec;
+    float lifetimeSec;
+    // --- 16 ---
+    float rotation;
+    float spinSpeed;
+    float scale;
+    float scaleOverT;
+    // --- 16 ---
+    float alphaOverT;
+    float hueShiftOverT;
+    uint _pad1;
+    uint _pad2;
 };
 
 layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
@@ -35,18 +30,21 @@ layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 layout(std430, binding = 2) buffer AliveCount { uint aliveCount; };
 layout(std430, binding = 5) buffer NextParticleState_0 { ParticleState nextState[]; };
 
-layout(location = 0) uniform int maxParticles;
-layout(location = 1) uniform int count;
-layout(location = 2) uniform float globalSeed;
-layout(location = 3) uniform vec2 position;
-layout(location = 4) uniform float spawnRadius;
-layout(location = 5) uniform uint atlasId;
-// layout(location = 5) uniform uvec2 atlasHandle;     // split u64
-// layout(location = 7) uniform int atlasCellCols;
-// layout(location = 8) uniform int atlasCellRows;
-layout(location = 9) uniform vec4 color;
-layout(location = 10) uniform vec2 scaleRange;
-layout(location = 11) uniform vec2 speedRange;
+uniform float seed;
+uniform int maxParticles;
+uniform int count;
+uniform int atlasId;
+uniform int atlasCellIndex;
+uniform vec2 position;
+uniform float spawnRadius;
+uniform vec2 lifetimeSec;
+uniform vec4 color;
+uniform vec2 scale;
+uniform float scaleOverT;
+uniform float alphaOverT;
+uniform float hueShiftOverT;
+uniform vec2 speed;
+uniform float spinSpeed;
 
 uint pcgHash(uint seed) {
     uint state = seed * 747796405u + 2891336453u;
@@ -68,53 +66,40 @@ float randRange(inout uint state, float minV, float maxV) {
     return mix(minV, maxV, rand(state));
 }
 
+vec2 randCircle(inout uint rng, float radius) {
+    float a = rand(rng) * 6.2831853;
+    float r = sqrt(rand(rng));
+    return vec2(cos(a), sin(a)) * r * radius;
+}
+
 void main() {
     uint index = gl_GlobalInvocationID.x;
+    if (index >= count) { return; }
+    uint outIndex = atomicAdd(aliveCount, 1);
+    if (outIndex >= uint(maxParticles)) { return; }
 
-    if (index >= count) {
-        return;
-    }
-
-    uint rng = pcgHash(index ^ floatBitsToUint(globalSeed));
-
-    float x = rand(rng) * 2.0 - 1.0;
-    float y = rand(rng) * 1.8 - 1.0;
-    vec2 finalPos = position + vec2(x, y) * spawnRadius;
+    uint rng = pcgHash(index ^ floatBitsToUint(seed));
 
     float initialRotation = rand(rng);
-    float lifetimeSec = rand(rng) * 4.7 + 0.3;
-    uint cellIndex = 0;
-
-    uint outIndex = atomicAdd(aliveCount, 1);
-
-    if (outIndex >= uint(maxParticles)) {
-        return;
-    }
-
-    float scale = randRange(rng, scaleRange.x, scaleRange.y);
-
     float angle = rand(rng) * 2 * PI;
     vec2 dir = vec2(cos(angle), sin(angle));
-    vec2 velocity = dir * randRange(rng, speedRange.x, speedRange.y);
+    vec2 velocity = dir * randRange(rng, speed.x, speed.y);
+    float lifetimeSecFinal = randRange(rng, lifetimeSec.x, lifetimeSec.y);
 
-    nextState[outIndex] = ParticleState(
-        // 16
-        finalPos,
-        velocity,
-        // 16
-        color,
-        // 16
-        atlasId,
-        cellIndex,
-        0,
-        0,
-        // atlasHandle,
-        // atlasCellCols,
-        // atlasCellRows,
-        // 16
-        lifetimeSec,
-        initialRotation,
-        scale,
-        0
-    );
+    ParticleState p;
+    p.position = position + randCircle(rng, spawnRadius);
+    p.velocity = velocity;
+    p.color = color;
+    p.atlasId = atlasId;
+    p.atlasCellIndex = atlasCellIndex;
+    p.initialLifetimeSec = lifetimeSecFinal;
+    p.lifetimeSec = lifetimeSecFinal;
+    p.rotation = initialRotation;
+    p.spinSpeed = spinSpeed;
+    p.scale = randRange(rng, scale.x, scale.y);
+    p.scaleOverT = scaleOverT;
+    p.alphaOverT = alphaOverT;
+    p.hueShiftOverT = hueShiftOverT;
+
+    nextState[outIndex] = p;
 }

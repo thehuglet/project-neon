@@ -44,8 +44,7 @@ pub fn handleWeapons(ctx: *Context) void {
                 remaining_primary_cd.* = 1.0 / stats.primary.fire_rate;
 
                 weapon.usePrimary(
-                    &ctx.ecs,
-                    ctx.rng,
+                    ctx,
                     slotted_weapon.id,
                     projectile_atlas,
                     item.entity_id,
@@ -59,8 +58,7 @@ pub fn handleWeapons(ctx: *Context) void {
                 remaining_secondary_cd.* = 1.0 / stats.secondary.fire_rate;
 
                 weapon.useSecondary(
-                    &ctx.ecs,
-                    ctx.rng,
+                    ctx,
                     slotted_weapon.id,
                     projectile_atlas,
                     item.entity_id,

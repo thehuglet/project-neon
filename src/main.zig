@@ -39,7 +39,7 @@ pub fn main() !void {
         .msaa_4x_hint = true,
     });
     rl.initWindow(1600, 900, "Project Neon");
-    rl.setTargetFPS(0);
+    rl.setTargetFPS(144);
     defer rl.closeWindow();
 
     const glGetTextureHandle = helpers.load_fn_bindless_get_texture_handle();
@@ -229,16 +229,18 @@ fn update(ctx: *Context) void {
     }
 
     if (rl.isKeyDown(.f)) {
-        // const atlas = ctx.atlases.get(.cube).?;
         particle.spawnBurst(
             &ctx.particle_system,
             .{ .x = 1920.0 * 0.5, .y = 1080.0 * 0.5 },
             .{
-                .color = .init(ctx.rng.int(u8), ctx.rng.int(u8), ctx.rng.int(u8), 255),
-                .texture = .{ .atlas_id = .cube, .cell_index = 0 },
-                .speed = .{ .range = .{ .min = 1000.0, .max = 2000.0 } },
-                .scale = .{ .range = .{ .min = 1000.0, .max = 1000.0 } },
-                .lifetime_sec = .{ .flat = 1.5 },
+                .color = rl.Color.init(230, 100, 80, 255).alpha(0.35),
+                .texture = .{ .atlas_id = .projectile, .cell_index = 0 },
+                .speed = .{ .range = .{ .min = 50.0, .max = 1000.0 } },
+                .scale = .{ .range = .{ .min = 100.0, .max = 100.0 } },
+                .scale_over_t = 0.0,
+                .alpha_over_t = 0.0,
+                .hue_shift_over_t = 2.0,
+                .lifetime_sec = .{ .range = .{ .min = 1.0, .max = 1.0 } },
             },
         );
     }
@@ -288,5 +290,5 @@ fn updatePost(ctx: *Context) void {
     system.despawnOOBEntities(ctx, -200.0);
     system.lifetimeDespawn(&ctx.ecs);
     system.zeroHealthDeath(&ctx.ecs, ctx.rng);
-    system.onDeath(&ctx.ecs, ctx.rng);
+    system.onDeath(ctx);
 }
