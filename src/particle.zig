@@ -258,6 +258,10 @@ pub fn deinit(system: *ParticleSystem) void {
     rl.gl.rlUnloadShaderBuffer(system.indirect_draw_args);
 }
 
+pub fn startFrameCleanup(system: *ParticleSystem) void {
+    rl.gl.rlUpdateShaderBuffer(system.alive_count, &ZERO, @sizeOf(u32), 0);
+}
+
 pub fn compute(system: *ParticleSystem) void {
     const dt: f32 = rl.getFrameTime();
     const current_particle_state = system.particle_state[system.particle_state_index];
@@ -292,46 +296,28 @@ pub fn compute(system: *ParticleSystem) void {
     system.particle_state_index = 1 - system.particle_state_index;
 }
 
-pub fn draw(system: *ParticleSystem, particle_shader: rl.Shader) void {
+pub fn draw(system: *ParticleSystem, particle_shader: rl.Shader, viewport_height: f32) void {
     const current_particle_state = system.particle_state[system.particle_state_index];
 
     rl.beginShaderMode(particle_shader);
     rl.beginBlendMode(.additive);
 
-    // const cell_w: i32 = 96;
-    // const cell_h: i32 = 96;
-    // const tex_w: i32 = 1024;
-    // const tex_h: i32 = 1024;
-    // const viewport_w: f32 = @floatFromInt(viewport_width);
-    // const viewport_h: f32 = @floatFromInt(viewport_height);
-    // rl.setShaderValue(particle_shader, 2, &cell_w, rl.ShaderUniformDataType.int);
-    // rl.setShaderValue(particle_shader, 3, &cell_h, rl.ShaderUniformDataType.int);
-    // rl.setShaderValue(particle_shader, 4, &tex_w, rl.ShaderUniformDataType.int);
-    // rl.setShaderValue(particle_shader, 5, &tex_h, rl.ShaderUniformDataType.int);
-    // rl.setShaderValue(particle_shader, 6, &[_]f32{ viewport_w, viewport_h }, rl.ShaderUniformDataType.vec2);
-
-    // const render_pass: u32 = 1;
-    // const atlas_cell_size_uv = rl.Vector2.init(
-    //      / @as(f32, @floatFromInt(viewport_width)),
-    // );
-
-    // rl.setShaderValue(particle_shader, 7, &render_pass, rl.ShaderUniformDataType.int);
-    // rl.setShaderValue(particle_shader, 8, &atlas_cell_size_uv, rl.ShaderUniformDataType.vec2);
-
     rl.gl.rlBindShaderBuffer(system.atlases, 6);
-
     rl.gl.rlBindShaderBuffer(current_particle_state, @intFromEnum(ComputeBufLoc.current_particle_state));
+
     _ = rl.gl.rlEnableVertexArray(system.vao);
     c_glad.glBindBuffer(c_glad.GL_DRAW_INDIRECT_BUFFER, system.indirect_draw_args);
-    // --- Blur pass ---
 
+    rl.setShaderValue(particle_shader, 2, &viewport_height, .float);
+
+    // --- Blur pass ---
     const pass0: u32 = 0;
-    rl.setShaderValue(particle_shader, 7, &pass0, rl.ShaderUniformDataType.int);
+    rl.setShaderValue(particle_shader, 7, &pass0, .int);
     c_glad.glDrawArraysIndirect(c_glad.GL_TRIANGLES, null);
 
     // --- Clean pass ---
     const pass1: u32 = 1;
-    rl.setShaderValue(particle_shader, 7, &pass1, rl.ShaderUniformDataType.int);
+    rl.setShaderValue(particle_shader, 7, &pass1, .int);
     c_glad.glDrawArraysIndirect(c_glad.GL_TRIANGLES, null);
 
     rl.gl.rlDisableVertexArray();
@@ -342,7 +328,7 @@ pub fn draw(system: *ParticleSystem, particle_shader: rl.Shader) void {
 pub fn spawnBurst(system: *ParticleSystem, pos: rl.Vector2, spec: Spec) void {
     // TODO: implement these properly:
     //
-    const count: u32 = 10;
+    const count: u32 = 100;
     const spawn_radius: f32 = 0.0;
 
     const groups: u32 = (count + 1023) / 1024;

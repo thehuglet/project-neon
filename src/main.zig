@@ -129,21 +129,10 @@ pub fn main() !void {
 
     // --- Init particles projection matrix ---
     {
+        const viewport_width: f64 = @floatFromInt(ctx.canvas_size.width);
+        const viewport_height: f64 = @floatFromInt(ctx.canvas_size.height);
+        const ortho = rl.math.matrixOrtho(0.0, viewport_width, 0.0, viewport_height, 0.0, 10.0);
         const shader = ctx.shaders.get(.particle).?;
-
-        const viewport_width: f32 = @floatFromInt(ctx.canvas_size.width);
-        const viewport_height: f32 = @floatFromInt(ctx.canvas_size.height);
-
-        // const aspect_ratio: f32 = viewport_width / viewport_height;
-        const ortho = rl.math.matrixOrtho(
-            0,
-            viewport_width,
-            0,
-            viewport_height,
-            0,
-            10,
-        );
-
         const projection_loc: i32 = rl.getShaderLocation(shader, "projection");
         rl.setShaderValueMatrix(shader, projection_loc, ortho);
     }
@@ -154,28 +143,18 @@ pub fn main() !void {
     while (!rl.windowShouldClose()) {
         ctx.clearTemp();
         ctx.ecs.beginQuery();
-
-        // --- Pre-draw update ---
-        const zero: u32 = 0;
-        rl.gl.rlUpdateShaderBuffer(ctx.particle_system.alive_count, &zero, @sizeOf(u32), 0);
-        update(&ctx);
-        particle.compute(&ctx.particle_system);
-
-        // --- Canvas drawing ---
         rl.beginTextureMode(canvas);
-        draw(&ctx);
-        particle.draw(&ctx.particle_system, ctx.shaders.get(.particle).?);
+        // const zero: u32 = 0;
+        // rl.gl.rlUpdateShaderBuffer(ctx.particle_system.alive_count, &zero, @sizeOf(u32), 0);
+        update(&ctx);
         rl.endTextureMode();
-
-        // --- Post-draw update ---
-        updatePost(&ctx);
         ctx.ecs.endQuery();
 
-        // ------ Drawing canvas to window ------
+        // --- Drawing canvas to window ---
         {
-            // const bloom_shader = ctx.shaders.get(.bloom).?;
+            const bloom_shader = ctx.shaders.get(.bloom).?;
             rl.beginDrawing();
-            // rl.beginShaderMode(bloom_shader);
+            rl.beginShaderMode(bloom_shader);
 
             const canvas_size = rl.Vector2{
                 .x = @floatFromInt(ctx.canvas_size.width),
@@ -205,7 +184,7 @@ pub fn main() !void {
                 rl.Color.white,
             );
 
-            // rl.endShaderMode();
+            rl.endShaderMode();
             rl.drawFPS(0, 0);
             // Debug particle counter
             {
@@ -221,6 +200,8 @@ pub fn main() !void {
 }
 
 fn update(ctx: *Context) void {
+    particle.startFrameCleanup(&ctx.particle_system);
+
     // --- Temp enemy spawning ---
     if (rl.isKeyPressed(.v)) {
         for (0..5) |_| {
@@ -245,7 +226,6 @@ fn update(ctx: *Context) void {
         );
     }
 
-    // --- Systems ---
     system.updateCanvasMousePos(ctx);
     // debug.handleDebugHotkeys(&ctx.game_settings);
     system.playerInputs(ctx);
@@ -266,9 +246,7 @@ fn update(ctx: *Context) void {
     system.handleCollisions(ctx);
     system.applyMotionToTransform(ctx);
     system.motionApplyDragFriction(ctx);
-}
 
-fn draw(ctx: *Context) void {
     system.drawStarfieldBackground(ctx);
     system.drawNeonSprites(ctx);
     system.drawLumenBar(ctx);
@@ -276,19 +254,13 @@ fn draw(ctx: *Context) void {
     system.drawPlayerHealth(ctx);
     system.drawNeonSpriteEntityCount(ctx);
 
-    // if (debug_settings.show_hurtboxes) {
-    //     system.drawDebugHurtboxes(&ecs);
-    // }
-    // if (debug_settings.show_hitboxes) {
-    //     system.drawDebugHitboxes(&ecs);
-    // }
-}
-
-fn updatePost(ctx: *Context) void {
     system.oneTickHitbox(ctx);
     // TODO: fix the death related logic, its a mess
-    system.despawnOOBEntities(ctx, -200.0);
+    system.despawnOOBEntities(ctx, -50.0);
     system.lifetimeDespawn(&ctx.ecs);
-    system.zeroHealthDeath(&ctx.ecs, ctx.rng);
+    system.zeroHealthDeath(ctx);
     system.onDeath(ctx);
+
+    particle.compute(&ctx.particle_system);
+    particle.draw(&ctx.particle_system, ctx.shaders.get(.particle).?, @floatFromInt(ctx.canvas_size.height));
 }

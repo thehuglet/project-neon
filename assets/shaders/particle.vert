@@ -35,6 +35,7 @@ struct ParticleState {
 
 layout(location = 0) in vec2 quadLocalPos;
 layout(location = 1) uniform mat4 projection;
+layout(location = 2) uniform float viewportHeight;
 
 layout(std430, binding = 4) buffer CurrentParticleState { ParticleState currentState[]; };
 layout(std430, binding = 6) buffer AtlasTable { GpuTextureAtlas atlases[]; };
@@ -74,11 +75,10 @@ void main() {
         angleCos, -angleSin,
         angleSin,  angleCos
     );
-
     float scaleOverTFactor = 1.0 + (p.scaleOverT - 1.0) * (1.0 - lifetimeT);
     float finalScale = p.scale * scaleOverTFactor;
 
     vec2 vertex = rotationMatrix * quadLocalPos * finalScale;
-    vec2 worldPos = p.position + vertex;
+    vec2 worldPos = vec2(p.position.x, viewportHeight - p.position.y) + vertex;
     gl_Position = projection * vec4(worldPos, 0.0, 1.0);
 }
