@@ -149,11 +149,11 @@ fn hit(ctx: *Context, receiver: EntityId, attacker: EntityId, hitbox: *c.Hitbox)
 
         // TODO: this is temporary, piercing currently doesnt get decreased, fix this
         if (stats.stats.projectile == .impact and stats.stats.projectile.impact.piercing == 1) {
-            ctx.ecs.deleteEntity(attacker);
+            ctx.ecs.addComponent(attacker, c.Dead{});
         }
 
         if (stats.stats.projectile == .explosion) {
-            ctx.ecs.deleteEntity(attacker);
+            ctx.ecs.addComponent(attacker, c.Dead{});
         }
     }
 }

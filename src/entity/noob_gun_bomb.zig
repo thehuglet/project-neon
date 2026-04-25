@@ -82,6 +82,8 @@ pub fn onDeath(ctx: *Context, spawner: EntityId, data: c.OnDeath.Data) void {
     const spawner_owner: *c.Owner = ctx.ecs.getComponent(spawner, c.Owner).?;
     // const spawner_neon_sprite: *c.NeonSprite = ctx.ecs.getComponent(spawner, c.NeonSprite).?;
 
+    std.debug.print("spawned\n", .{});
+
     switch (data) {
         .explosion => |explosion| {
             _ = explosion_entity.spawn(
@@ -97,13 +99,13 @@ pub fn onDeath(ctx: *Context, spawner: EntityId, data: c.OnDeath.Data) void {
                 &ctx.particle_system,
                 spawner_transform.pos,
                 .{
-                    .color = rl.Color.init(230, 100, 80, 255).alpha(0.35),
+                    .color = rl.Color.init(255, 100, 40, 255).alpha(0.35),
                     .texture = .{ .atlas_id = .projectile, .cell_index = 0 },
                     .speed = .{ .range = .{ .min = 80.0, .max = 1000.0 } },
                     .scale = .{ .range = .{ .min = 70.0, .max = 100.0 } },
                     .scale_over_t = 0.0,
                     .alpha_over_t = 0.0,
-                    .hue_shift_over_t = 2.0,
+                    .hue_shift_over_t = 1.0,
                     .lifetime_sec = .{ .range = .{ .min = 0.3, .max = 1.0 } },
                 },
             );

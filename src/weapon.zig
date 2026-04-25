@@ -71,7 +71,7 @@ pub const STATS = std.EnumMap(WeaponId, WeaponStats).init(.{
         },
         .secondary = WeaponPartStats{
             .trigger_mode = .semi,
-            .fire_rate = 40.0,
+            .fire_rate = 2.0,
             .lumen_cost = 0.0,
             .projectile = Projectile{
                 .explosion = .{
