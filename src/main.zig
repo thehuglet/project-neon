@@ -255,7 +255,7 @@ fn update(ctx: *Context) void {
     system.drawNeonSpriteEntityCount(ctx);
 
     system.oneTickHitbox(ctx);
-    system.despawnOOBEntities(ctx, -50.0);
+    system.despawnOOBEntities(ctx, 50.0);
     system.lifetimeDespawn(ctx);
     system.zeroHealthDeath(ctx);
     system.onDeath(ctx);
