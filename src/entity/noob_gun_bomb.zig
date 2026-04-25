@@ -82,8 +82,6 @@ pub fn onDeath(ctx: *Context, spawner: EntityId, data: c.OnDeath.Data) void {
     const spawner_owner: *c.Owner = ctx.ecs.getComponent(spawner, c.Owner).?;
     // const spawner_neon_sprite: *c.NeonSprite = ctx.ecs.getComponent(spawner, c.NeonSprite).?;
 
-    std.debug.print("spawned\n", .{});
-
     switch (data) {
         .explosion => |explosion| {
             _ = explosion_entity.spawn(
