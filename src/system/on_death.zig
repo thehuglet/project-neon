@@ -7,13 +7,10 @@ const c = @import("component");
 pub fn onDeath(ctx: *Context) void {
     var query = ctx.ecs.query(.{
         c.OnDeath,
+        c.Dead,
     });
     while (query.next()) |item| {
         const on_death: *c.OnDeath = item.get(c.OnDeath).?;
-
-        if (ctx.ecs.entityIsAlive(item.entity_id)) {
-            continue;
-        }
 
         on_death.callback(ctx, item.entity_id, on_death.data);
     }

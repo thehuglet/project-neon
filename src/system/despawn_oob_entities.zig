@@ -20,7 +20,8 @@ pub fn despawnOOBEntities(ctx: *Context, margin: f32) void {
         const oob_bottom: bool = transform.pos.y > canvas_height_f32 + margin;
 
         if (oob_left or oob_top or oob_right or oob_bottom) {
-            item.ecs.deleteEntity(item.entity_id);
+            ctx.ecs.addComponent(item.entity_id, c.Dead{});
+            // item.ecs.deleteEntity(item.entity_id);
         }
     }
 }

@@ -237,7 +237,7 @@ fn update(ctx: *Context) void {
     system.updateDash(ctx);
     system.updateDashTrailGhost(ctx);
     system.updateLifetime(ctx);
-    // system.chaseEntity(ctx);
+    system.chaseEntity(ctx);
     system.spinCosmetic(ctx);
     system.updateDamageFlash(ctx);
     system.updateRingOverTLifetime(ctx);
@@ -255,11 +255,11 @@ fn update(ctx: *Context) void {
     system.drawNeonSpriteEntityCount(ctx);
 
     system.oneTickHitbox(ctx);
-    // TODO: fix the death related logic, its a mess
     system.despawnOOBEntities(ctx, -50.0);
-    system.lifetimeDespawn(&ctx.ecs);
+    system.lifetimeDespawn(ctx);
     system.zeroHealthDeath(ctx);
     system.onDeath(ctx);
+    system.cleanupDeadEntities(ctx);
 
     particle.compute(&ctx.particle_system);
     particle.draw(&ctx.particle_system, ctx.shaders.get(.particle).?, @floatFromInt(ctx.canvas_size.height));

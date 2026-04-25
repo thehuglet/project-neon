@@ -24,6 +24,7 @@ pub fn zeroHealthDeath(ctx: *Context) void {
             // const transform: *c.Transform = item.get(c.Transform).?;
 
             // const maybe_motion: ?*c.Motion = item.get(c.Motion);
+            std.debug.print("health: {}\n", .{health});
 
             if (health.health <= 0.0) {
                 ctx.ecs.addComponent(item.entity_id, c.Dead{});

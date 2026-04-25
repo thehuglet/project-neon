@@ -47,7 +47,6 @@ pub fn handleCollisions(ctx: *Context) void {
             for (0..hurt_ids.items.len) |i| {
                 const tried_hitting_self: bool = item.entity_id == hurt_ids.items[i];
                 const collision_layer_mismatch: bool = !hitbox.mask.intersects(hurt_layers.items[i]);
-                // const collision_layer_mismatch: bool = (hitbox.mask & hurt_layers.items[i]) == 0;
                 const attacker_is_dead: bool = !ctx.ecs.entityIsAlive(item.entity_id);
 
                 if (tried_hitting_self or collision_layer_mismatch or attacker_is_dead) {

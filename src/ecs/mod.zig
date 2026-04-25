@@ -80,7 +80,13 @@ pub fn Query(comptime ComponentTypes: anytype) type {
             const primary_list = self.candidate_component_lists[self.primary_index];
             while (self.index < primary_list.items.len) {
                 const entity_index = primary_list.items[self.index];
+                const generation = self.ecs.entity_id_pool.getGeneration(entity_index);
+                const entity_id = EntityId{ .index = entity_index, .generation = generation };
                 self.index += 1;
+
+                if (!self.ecs.entityIsAlive(entity_id)) {
+                    continue;
+                }
 
                 var all_present = true;
                 inline for (ComponentTypes) |T| {
@@ -91,8 +97,6 @@ pub fn Query(comptime ComponentTypes: anytype) type {
                     }
                 }
                 if (all_present) {
-                    const generation = self.ecs.entity_id_pool.getGeneration(entity_index);
-                    const entity_id = EntityId{ .index = entity_index, .generation = generation };
                     return QueryItem(ComponentTypes).init(self.ecs, entity_id);
                 }
             }
