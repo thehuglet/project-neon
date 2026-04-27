@@ -59,6 +59,23 @@ pub fn spawn(
     ctx.ecs.addComponent(entity_id, c.GeneratesLumen{
         .amount = stats.projectile.impact.lumen_gain,
     });
+    // ctx.ecs.addComponent(entity_id, c.OnDeath{
+    //     .callback = &onDeath,
+    //     .data = c.OnDeath.Data{
+    //         .explosion = .{
+    //             .damage = stats.projectile.explosion.damage,
+    //             .radius = stats.projectile.explosion.radius,
+    //             .collision_mask = .{ .enemy = true },
+    //         },
+    //     },
+    // });
 
     return entity_id;
 }
+
+// fn onDeath(ctx: *Context, entity_id: EntityId, data: c.OnDeath.Data) void {
+//     switch (data) {
+//         .explosion => |explosion| {},
+//         else => {},
+//     }
+// }

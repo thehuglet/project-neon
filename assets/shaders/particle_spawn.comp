@@ -27,8 +27,8 @@ struct ParticleState {
 
 layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 
-layout(std430, binding = 2) buffer AliveCount { uint aliveCount; };
-layout(std430, binding = 5) buffer NextParticleState_0 { ParticleState nextState[]; };
+layout(std430, binding = 0) buffer AliveCount { uint aliveCount; };
+layout(std430, binding = 1) buffer NextParticleState_0 { ParticleState nextState[]; };
 
 uniform float seed;
 uniform int maxParticles;
@@ -45,6 +45,7 @@ uniform float alphaOverT;
 uniform float hueShiftOverT;
 uniform vec2 speed;
 uniform float spinSpeed;
+uniform vec2 extraVelocity;
 
 uint pcgHash(uint seed) {
     uint state = seed * 747796405u + 2891336453u;
@@ -88,7 +89,7 @@ void main() {
 
     ParticleState p;
     p.position = position + randCircle(rng, spawnRadius);
-    p.velocity = velocity;
+    p.velocity = velocity + extraVelocity;
     p.color = color;
     p.atlasId = atlasId;
     p.atlasCellIndex = atlasCellIndex;

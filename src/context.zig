@@ -84,7 +84,7 @@ pub const Context = struct {
     allocator: std.mem.Allocator,
     ecs: ECS,
     rng: std.Random,
-    canvas_size: struct {
+    viewport_size: struct {
         width: i32,
         height: i32,
     },

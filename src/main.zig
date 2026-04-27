@@ -47,27 +47,18 @@ pub fn main() !void {
     context.setupGlBindlessFnPtrs(glGetTextureHandle, glMakeTextureHandleResident);
 
     // --- Init context ---
-    const atlases: std.EnumMap(enums.AtlasId, TextureAtlas) = .init(.{
-        .cube = .init("assets/gen_textures/atlases/cube_atlas.png", 96, 96),
-        .roto = .init("assets/gen_textures/atlases/roto_atlas.png", 96, 96),
-        .projectile = .init("assets/gen_textures/atlases/projectile_atlas.png", 96, 96),
-    });
-    var gpu_atlases: std.EnumMap(enums.AtlasId, GpuTextureAtlas) = .init(.{
-        .cube = context.buildGpuTextureAtlas(atlases.get(.cube).?),
-        .roto = context.buildGpuTextureAtlas(atlases.get(.roto).?),
-        .projectile = context.buildGpuTextureAtlas(atlases.get(.projectile).?),
-    });
-    var ctx = Context{
-        .ecs = ECS.init(allocator),
-        .allocator = allocator,
-        .rng = prng.random(),
-        .canvas_size = .{
-            .width = 1920,
-            .height = 1080,
-        },
-        .atlases = atlases,
-        .gpu_atlases = gpu_atlases,
-        .shaders = .init(.{
+    var ctx: Context = blk: {
+        const atlases: std.EnumMap(enums.AtlasId, TextureAtlas) = .init(.{
+            .cube = .init("assets/gen_textures/atlases/cube_atlas.png", 96, 96),
+            .roto = .init("assets/gen_textures/atlases/roto_atlas.png", 96, 96),
+            .projectile = .init("assets/gen_textures/atlases/projectile_atlas.png", 96, 96),
+        });
+        var gpu_atlases: std.EnumMap(enums.AtlasId, GpuTextureAtlas) = .init(.{
+            .cube = context.buildGpuTextureAtlas(atlases.get(.cube).?),
+            .roto = context.buildGpuTextureAtlas(atlases.get(.roto).?),
+            .projectile = context.buildGpuTextureAtlas(atlases.get(.projectile).?),
+        });
+        const shaders: std.EnumMap(enums.ShaderId, rl.Shader) = .init(.{
             .neon_sprite = try rl.loadShader(
                 "assets/shaders/neon_sprite.vert",
                 "assets/shaders/neon_sprite.frag",
@@ -84,34 +75,50 @@ pub fn main() !void {
                 "assets/shaders/particle.vert",
                 "assets/shaders/particle.frag",
             ),
-        }),
-        .game_settings = .{
-            .show_hurtboxes = false,
-            .show_hitboxes = false,
-        },
-        .particle_system = particle.init(allocator, &gpu_atlases),
-        .player_input_state = .{
-            .move_up = false,
-            .move_down = false,
-            .move_left = false,
-            .move_right = false,
-            .dash = false,
-            .use_primary_fire = false,
-            .use_secondary_fire = false,
-        },
-        .temp = .{
-            .hurt_ids = .empty,
-            .hurt_positions = .empty,
-            .hurt_radii = .empty,
-            .hurt_layers = .empty,
-        },
+        });
+        break :blk Context{
+            .ecs = ECS.init(allocator),
+            .allocator = allocator,
+            .rng = prng.random(),
+            .viewport_size = .{
+                .width = 1920,
+                .height = 1080,
+            },
+            .atlases = atlases,
+            .gpu_atlases = gpu_atlases,
+            .shaders = shaders,
+            .game_settings = .{
+                .show_hurtboxes = false,
+                .show_hitboxes = false,
+            },
+            .particle_system = particle.init(
+                allocator,
+                &gpu_atlases,
+                shaders.get(.particle).?,
+            ),
+            .player_input_state = .{
+                .move_up = false,
+                .move_down = false,
+                .move_left = false,
+                .move_right = false,
+                .dash = false,
+                .use_primary_fire = false,
+                .use_secondary_fire = false,
+            },
+            .temp = .{
+                .hurt_ids = .empty,
+                .hurt_positions = .empty,
+                .hurt_radii = .empty,
+                .hurt_layers = .empty,
+            },
+        };
     };
     defer ctx.deinit();
 
     // --- Init canvas ---
     const canvas: rl.RenderTexture2D = try rl.loadRenderTexture(
-        ctx.canvas_size.width,
-        ctx.canvas_size.height,
+        ctx.viewport_size.width,
+        ctx.viewport_size.height,
     );
     rl.setTextureWrap(canvas.texture, .clamp);
     rl.setTextureFilter(canvas.texture, .bilinear);
@@ -120,8 +127,8 @@ pub fn main() !void {
     {
         const shader = ctx.shaders.get(.starfield).?;
         const resolution = [2]f32{
-            @floatFromInt(ctx.canvas_size.width),
-            @floatFromInt(ctx.canvas_size.height),
+            @floatFromInt(ctx.viewport_size.width),
+            @floatFromInt(ctx.viewport_size.height),
         };
         const resolution_loc = helpers.shaderUniform(shader, "u_resolution");
         rl.setShaderValue(shader, resolution_loc, &resolution, .vec2);
@@ -129,8 +136,8 @@ pub fn main() !void {
 
     // --- Init particles projection matrix ---
     {
-        const viewport_width: f64 = @floatFromInt(ctx.canvas_size.width);
-        const viewport_height: f64 = @floatFromInt(ctx.canvas_size.height);
+        const viewport_width: f64 = @floatFromInt(ctx.viewport_size.width);
+        const viewport_height: f64 = @floatFromInt(ctx.viewport_size.height);
         const ortho = rl.math.matrixOrtho(0.0, viewport_width, 0.0, viewport_height, 0.0, 10.0);
         const shader = ctx.shaders.get(.particle).?;
         const projection_loc: i32 = rl.getShaderLocation(shader, "projection");
@@ -144,8 +151,6 @@ pub fn main() !void {
         ctx.clearTemp();
         ctx.ecs.beginQuery();
         rl.beginTextureMode(canvas);
-        // const zero: u32 = 0;
-        // rl.gl.rlUpdateShaderBuffer(ctx.particle_system.alive_count, &zero, @sizeOf(u32), 0);
         update(&ctx);
         rl.endTextureMode();
         ctx.ecs.endQuery();
@@ -156,18 +161,18 @@ pub fn main() !void {
             rl.beginDrawing();
             rl.beginShaderMode(bloom_shader);
 
-            const canvas_size = rl.Vector2{
-                .x = @floatFromInt(ctx.canvas_size.width),
-                .y = @floatFromInt(ctx.canvas_size.height),
+            const viewport_size = rl.Vector2{
+                .x = @floatFromInt(ctx.viewport_size.width),
+                .y = @floatFromInt(ctx.viewport_size.height),
             };
 
             const src = rl.Rectangle{
                 .x = 0,
                 .y = 0,
-                .width = canvas_size.x,
-                .height = -canvas_size.y,
+                .width = viewport_size.x,
+                .height = -viewport_size.y,
             };
-            const dest_size: rl.Vector2 = helpers.toScreenCoords(canvas_size, canvas_size);
+            const dest_size: rl.Vector2 = helpers.toScreenCoords(viewport_size, viewport_size);
             const dest = rl.Rectangle{
                 .x = 0,
                 .y = 0,
@@ -210,20 +215,21 @@ fn update(ctx: *Context) void {
     }
 
     if (rl.isKeyDown(.f)) {
-        particle.spawnBurst(
-            &ctx.particle_system,
-            .{ .x = 1920.0 * 0.5, .y = 1080.0 * 0.5 },
-            .{
-                .color = rl.Color.init(230, 100, 80, 255).alpha(0.35),
-                .texture = .{ .atlas_id = .projectile, .cell_index = 0 },
-                .speed = .{ .range = .{ .min = 50.0, .max = 1000.0 } },
-                .scale = .{ .range = .{ .min = 100.0, .max = 100.0 } },
-                .scale_over_t = 0.0,
-                .alpha_over_t = 0.0,
-                .hue_shift_over_t = 2.0,
-                .lifetime_sec = .{ .range = .{ .min = 1.0, .max = 1.0 } },
-            },
-        );
+        particle.spawnBurst(&ctx.particle_system, .{
+            .x = 1920.0 * 0.5,
+            .y = 1080.0 * 0.5,
+        }, .{
+            .color = rl.Color.init(230, 100, 80, 255).alpha(0.35),
+            .texture = .{ .atlas_id = .projectile, .cell_index = 0 },
+            .speed = .{ .range = .{ .min = 50.0, .max = 1000.0 } },
+            .scale = .{ .range = .{ .min = 100.0, .max = 100.0 } },
+            .scale_over_t = 0.0,
+            .alpha_over_t = 0.0,
+            .hue_shift_over_t = 2.0,
+            .lifetime_sec = .{ .range = .{ .min = 1.0, .max = 1.0 } },
+        }, .{
+            .count = 100,
+        });
     }
 
     system.updateCanvasMousePos(ctx);
@@ -262,5 +268,5 @@ fn update(ctx: *Context) void {
     system.cleanupDeadEntities(ctx);
 
     particle.compute(&ctx.particle_system);
-    particle.draw(&ctx.particle_system, ctx.shaders.get(.particle).?, @floatFromInt(ctx.canvas_size.height));
+    particle.draw(&ctx.particle_system, ctx.shaders.get(.particle).?, @floatFromInt(ctx.viewport_size.height));
 }

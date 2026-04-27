@@ -25,12 +25,12 @@ struct ParticleState {
 
 layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 
-layout(std430, binding = 2) buffer AliveCount { uint aliveCount; };
-layout(std430, binding = 3) readonly buffer PrevAliveCount { uint prevAliveCount; };
-layout(std430, binding = 4) readonly buffer CurrentParticleState { ParticleState currentState[]; };
-layout(std430, binding = 5) buffer NextParticleState { ParticleState nextState[]; };
+layout(std430, binding = 0) buffer AliveCount { uint aliveCount; };
+layout(std430, binding = 1) readonly buffer PrevAliveCount { uint prevAliveCount; };
+layout(std430, binding = 2) readonly buffer CurrentParticleState { ParticleState currentState[]; };
+layout(std430, binding = 3) buffer NextParticleState { ParticleState nextState[]; };
 
-layout(location = 0) uniform float deltaTime;
+uniform float deltaTime;
 
 void main() {
     uint index = gl_GlobalInvocationID.x;

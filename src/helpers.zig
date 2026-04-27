@@ -91,11 +91,11 @@ pub fn shaderUniform(shader: rl.Shader, uniform_name: [:0]const u8) i32 {
 pub fn toScreenCoords(from_size: rl.Vector2, pos: rl.Vector2) rl.Vector2 {
     const screen_w = @as(f32, @floatFromInt(rl.getScreenWidth()));
     const screen_h = @as(f32, @floatFromInt(rl.getScreenHeight()));
-    const canvas_w = from_size.x;
-    const canvas_h = from_size.y;
+    const from_w = from_size.x;
+    const from_h = from_size.y;
     const scale = rl.Vector2{
-        .x = screen_w / canvas_w,
-        .y = screen_h / canvas_h,
+        .x = screen_w / from_w,
+        .y = screen_h / from_h,
     };
     return rl.Vector2{
         .x = pos.x * scale.x,
@@ -106,11 +106,11 @@ pub fn toScreenCoords(from_size: rl.Vector2, pos: rl.Vector2) rl.Vector2 {
 pub fn fromScreenCoords(to_size: rl.Vector2, pos: rl.Vector2) rl.Vector2 {
     const screen_w = @as(f32, @floatFromInt(rl.getScreenWidth()));
     const screen_h = @as(f32, @floatFromInt(rl.getScreenHeight()));
-    const canvas_w = to_size.x;
-    const canvas_h = to_size.y;
+    const to_w = to_size.x;
+    const to_h = to_size.y;
     const scale = rl.Vector2{
-        .x = canvas_w / screen_w,
-        .y = canvas_h / screen_h,
+        .x = to_w / screen_w,
+        .y = to_h / screen_h,
     };
     return rl.Vector2{
         .x = pos.x * scale.x,

@@ -34,6 +34,7 @@ struct ParticleState {
 };
 
 layout(location = 0) in vec2 quadLocalPos;
+
 layout(location = 1) uniform mat4 projection;
 layout(location = 2) uniform float viewportHeight;
 

@@ -15,8 +15,8 @@ pub fn drawStarfieldBackground(ctx: *Context) void {
     rl.drawRectangle(
         0,
         0,
-        ctx.canvas_size.width,
-        ctx.canvas_size.height,
+        ctx.viewport_size.width,
+        ctx.viewport_size.height,
         rl.Color.black,
     );
     rl.endShaderMode();
