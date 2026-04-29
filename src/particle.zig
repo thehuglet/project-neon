@@ -355,7 +355,6 @@ pub fn compute(system: *ParticleSystem) void {
             rl.gl.rlBindShaderBuffer(system.prev_alive_count, b.prev_alive_count);
             rl.gl.rlBindShaderBuffer(current_particle_state, b.current_state);
             rl.gl.rlBindShaderBuffer(next_particle_state, b.next_state);
-            // rl.gl.rlBindShaderBuffer(system.indirect_draw_args, b.draw_indirect_args);
         }
     }
     c_glad.glBindBuffer(c_glad.GL_DISPATCH_INDIRECT_BUFFER, system.indirect_dispatch_args);
@@ -456,7 +455,6 @@ pub fn spawnBurst(system: *ParticleSystem, pos: rl.Vector2, spec: Spec, emitter:
         const next_particle_state: u32 = system.particle_state[1 - system.particle_state_index];
         const b = &system.spawn_shader_bindings;
 
-        // rl.gl.rlBindShaderBuffer(system.atlases, 6);
         rl.gl.rlBindShaderBuffer(system.alive_count, b.alive_count);
         rl.gl.rlBindShaderBuffer(next_particle_state, b.next_particle_state);
     }
