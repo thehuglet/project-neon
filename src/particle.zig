@@ -45,23 +45,6 @@ pub const Emitter = struct {
     count: u32 = 100,
 };
 
-const ComputeBufLoc = enum(u8) {
-    compute_indirect_args = 0,
-    draw_indirect_args = 1,
-    alive_count = 2,
-    prev_alive_count = 3,
-    current_particle_state = 4,
-    next_particle_state = 5,
-};
-
-const ComputeUniLoc = enum(u8) {
-    delta_time = 0,
-};
-
-const DrawUniLoc = enum(u8) {
-    particle_scale = 0,
-};
-
 const DrawIndirectData = struct {
     count: c_uint,
     instanceCount: c_uint,
