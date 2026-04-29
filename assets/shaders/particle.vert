@@ -35,11 +35,11 @@ struct ParticleState {
 
 layout(location = 0) in vec2 quadLocalPos;
 
-layout(location = 1) uniform mat4 projection;
-layout(location = 2) uniform float viewportHeight;
+layout(std430, binding = 0) buffer CurrentParticleState { ParticleState currentState[]; };
+layout(std430, binding = 1) buffer AtlasTable { GpuTextureAtlas atlases[]; };
 
-layout(std430, binding = 4) buffer CurrentParticleState { ParticleState currentState[]; };
-layout(std430, binding = 6) buffer AtlasTable { GpuTextureAtlas atlases[]; };
+uniform mat4 projection;
+uniform float viewportHeight;
 
 out flat uvec2 fragHandle;
 out vec2 cleanUV;

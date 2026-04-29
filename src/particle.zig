@@ -12,11 +12,16 @@ const c_glad = @cImport({
     @cInclude("glad.h");
 });
 
+const MAX_PARTICLE_COUNT: u32 = 1024 * 250;
+
 const U_TYPE_INT: u32 = @intFromEnum(rl.ShaderUniformDataType.int);
 const U_TYPE_FLOAT: u32 = @intFromEnum(rl.ShaderUniformDataType.float);
 const U_TYPE_VEC2: u32 = @intFromEnum(rl.ShaderUniformDataType.vec2);
 const U_TYPE_VEC4: u32 = @intFromEnum(rl.ShaderUniformDataType.vec4);
 const ZERO: u32 = 0;
+
+const DRAW_BLUR_PASS: i32 = 0;
+const DRAW_CLEAN_PASS: i32 = 1;
 
 const MAX_GPU_TEXTURE_ATLASES = 64;
 
@@ -94,7 +99,7 @@ const ParticleState = extern struct {
 };
 
 pub const ParticleSystem = struct {
-    max_particles: u32,
+    max_particle_count: u32,
     vao: u32,
     update_shader: u32,
     indirect_cmd_shader: u32,
@@ -123,6 +128,7 @@ pub const ParticleSystem = struct {
     draw_shader_uniforms: struct {
         projection: i32,
         viewport_height: i32,
+        render_pass: i32,
     },
     // --- Buffer bindings ---
     update_shader_bindings: struct {
@@ -134,15 +140,17 @@ pub const ParticleSystem = struct {
     spawn_shader_bindings: struct {
         alive_count: u32,
         next_particle_state: u32,
-
-        // atlases: u32 = 0,
-        // compute_indirect_args = 0,
-        // draw_indirect_args = 1,
-        // alive_count = 2,
-        // prev_alive_count = 3,
-        // next_particle_state = 5,
     },
-
+    indirect_cmd_shader_bindings: struct {
+        compute_indirect_args: u32,
+        draw_indirect_args: u32,
+        alive_count: u32,
+        prev_alive_count: u32,
+    },
+    draw_shader_bindings: struct {
+        current_state: u32,
+        atlases: u32,
+    },
     // --- Buffer handles ---
     atlases: u32,
     alive_count: u32,
@@ -157,14 +165,14 @@ pub fn init(
     allocator: std.mem.Allocator,
     gpu_atlases: *std.EnumMap(enums.AtlasId, GpuTextureAtlas),
     draw_shader: rl.Shader,
+    viewport_height: u32,
 ) ParticleSystem {
     const update_shader = loadComputeShaderProgram("assets/shaders/particle_update.comp");
     const spawn_shader = loadComputeShaderProgram("assets/shaders/particle_spawn.comp");
     const indirect_cmd_shader = loadComputeShaderProgram("assets/shaders/particle_indirect_cmd.comp");
 
-    const max_particles: u32 = 1024 * 250;
-
-    const initial_particle_state: []ParticleState = allocator.alloc(ParticleState, max_particles) catch @panic("OOM");
+    const initial_particle_state: []ParticleState = allocator.alloc(ParticleState, MAX_PARTICLE_COUNT) catch
+        @panic("OOM");
     defer allocator.free(initial_particle_state);
 
     for (initial_particle_state) |*p| {
@@ -172,12 +180,12 @@ pub fn init(
     }
     const particle_state = [_]u32{
         rl.gl.rlLoadShaderBuffer(
-            max_particles * @sizeOf(ParticleState),
+            MAX_PARTICLE_COUNT * @sizeOf(ParticleState),
             initial_particle_state.ptr,
             rl.gl.rl_dynamic_copy,
         ),
         rl.gl.rlLoadShaderBuffer(
-            max_particles * @sizeOf(ParticleState),
+            MAX_PARTICLE_COUNT * @sizeOf(ParticleState),
             initial_particle_state.ptr,
             rl.gl.rl_dynamic_copy,
         ),
@@ -193,10 +201,10 @@ pub fn init(
     const atlas_array_size = atlas_array.len * @sizeOf(GpuTextureAtlas);
     const buf_atlases = rl.gl.rlLoadShaderBuffer(atlas_array_size, &atlas_array, rl.gl.rl_dynamic_copy);
     const buf_alive_count = rl.gl.rlLoadShaderBuffer(@sizeOf(u32), &ZERO, rl.gl.rl_dynamic_copy);
-    const buf_prev_alive_count = rl.gl.rlLoadShaderBuffer(@sizeOf(u32), &max_particles, rl.gl.rl_dynamic_copy);
+    const buf_prev_alive_count = rl.gl.rlLoadShaderBuffer(@sizeOf(u32), &MAX_PARTICLE_COUNT, rl.gl.rl_dynamic_copy);
 
     // --- Init indirect dispatch args ---
-    const initial_groups = (max_particles + 1023) / 1024;
+    const initial_groups = (MAX_PARTICLE_COUNT + 1023) / 1024;
     const indirect_dispatch_data = [_]u32{ initial_groups, 1, 1 };
     const indirect_dispatch_args = rl.gl.rlLoadShaderBuffer(
         3 * @sizeOf(u32),
@@ -207,7 +215,7 @@ pub fn init(
     // --- Init indirect draw args ---
     const draw_indirect_data = DrawIndirectData{
         .count = 6,
-        .instanceCount = max_particles,
+        .instanceCount = MAX_PARTICLE_COUNT,
         .first = 0,
         .baseInstance = 0,
     };
@@ -217,7 +225,7 @@ pub fn init(
         rl.gl.rl_dynamic_draw,
     );
 
-    // --- Init vertex ---
+    // --- Init vertex data ---
     const vao = rl.gl.rlLoadVertexArray();
     _ = rl.gl.rlEnableVertexArray(vao);
     const vertices = [6]rl.Vector2{
@@ -237,8 +245,18 @@ pub fn init(
 
     const uni = rl.gl.rlGetLocationUniform;
 
+    // --- Init persistent uniforms ---
+    const viewport_height_u_loc = uni(draw_shader.id, "viewportHeight");
+    const viewport_height_f32: f32 = @floatFromInt(viewport_height);
+    rl.setShaderValue(
+        draw_shader,
+        viewport_height_u_loc,
+        &viewport_height_f32,
+        .float,
+    );
+
     return ParticleSystem{
-        .max_particles = max_particles,
+        .max_particle_count = MAX_PARTICLE_COUNT,
         .vao = vao,
         .update_shader = update_shader,
         .spawn_shader = spawn_shader,
@@ -265,11 +283,28 @@ pub fn init(
         },
         .draw_shader_uniforms = .{
             .projection = uni(draw_shader.id, "projection"),
-            .viewport_height = uni(draw_shader.id, "viewportHeight"),
+            .viewport_height = viewport_height_u_loc,
+            .render_pass = uni(draw_shader.id, "renderPass"),
+        },
+        .update_shader_bindings = .{
+            .alive_count = 0,
+            .prev_alive_count = 1,
+            .current_state = 2,
+            .next_state = 3,
         },
         .spawn_shader_bindings = .{
             .alive_count = 0,
             .next_particle_state = 1,
+        },
+        .indirect_cmd_shader_bindings = .{
+            .compute_indirect_args = 0,
+            .draw_indirect_args = 1,
+            .alive_count = 2,
+            .prev_alive_count = 3,
+        },
+        .draw_shader_bindings = .{
+            .current_state = 0,
+            .atlases = 1,
         },
         .atlases = buf_atlases,
         .alive_count = buf_alive_count,
@@ -302,21 +337,26 @@ pub fn compute(system: *ParticleSystem) void {
     // --- Update pass ---
     rl.gl.rlEnableShader(system.update_shader);
     {
-        const dt: f32 = rl.getFrameTime();
-        const current_particle_state: u32 = system.particle_state[system.particle_state_index];
-        const next_particle_state: u32 = system.particle_state[1 - system.particle_state_index];
-        const u = &system.update_shader_uniforms;
-        const b = &system.update_shader_bindings;
-
         // --- Uniforms ---
-        rl.gl.rlSetUniform(u.delta_time, &dt, U_TYPE_FLOAT, 1);
+        {
+            const dt: f32 = rl.getFrameTime();
+            const u = &system.update_shader_uniforms;
+
+            rl.gl.rlSetUniform(u.delta_time, &dt, U_TYPE_FLOAT, 1);
+        }
 
         // --- Buffers ---
-        rl.gl.rlBindShaderBuffer(current_particle_state, @intFromEnum(ComputeBufLoc.current_particle_state));
-        rl.gl.rlBindShaderBuffer(next_particle_state, @intFromEnum(ComputeBufLoc.next_particle_state));
-        rl.gl.rlBindShaderBuffer(system.alive_count, @intFromEnum(ComputeBufLoc.alive_count));
-        rl.gl.rlBindShaderBuffer(system.prev_alive_count, @intFromEnum(ComputeBufLoc.prev_alive_count));
-        rl.gl.rlBindShaderBuffer(system.indirect_draw_args, @intFromEnum(ComputeBufLoc.draw_indirect_args));
+        {
+            const current_particle_state: u32 = system.particle_state[system.particle_state_index];
+            const next_particle_state: u32 = system.particle_state[1 - system.particle_state_index];
+            const b = &system.update_shader_bindings;
+
+            rl.gl.rlBindShaderBuffer(system.alive_count, b.alive_count);
+            rl.gl.rlBindShaderBuffer(system.prev_alive_count, b.prev_alive_count);
+            rl.gl.rlBindShaderBuffer(current_particle_state, b.current_state);
+            rl.gl.rlBindShaderBuffer(next_particle_state, b.next_state);
+            // rl.gl.rlBindShaderBuffer(system.indirect_draw_args, b.draw_indirect_args);
+        }
     }
     c_glad.glBindBuffer(c_glad.GL_DISPATCH_INDIRECT_BUFFER, system.indirect_dispatch_args);
     c_glad.glDispatchComputeIndirect(0);
@@ -325,10 +365,14 @@ pub fn compute(system: *ParticleSystem) void {
 
     // --- Dispatch args pass ---
     rl.gl.rlEnableShader(system.indirect_cmd_shader);
-    rl.gl.rlBindShaderBuffer(system.alive_count, @intFromEnum(ComputeBufLoc.alive_count));
-    rl.gl.rlBindShaderBuffer(system.prev_alive_count, @intFromEnum(ComputeBufLoc.prev_alive_count));
-    rl.gl.rlBindShaderBuffer(system.indirect_dispatch_args, @intFromEnum(ComputeBufLoc.compute_indirect_args));
-    rl.gl.rlBindShaderBuffer(system.indirect_draw_args, @intFromEnum(ComputeBufLoc.draw_indirect_args));
+    {
+        const b = &system.indirect_cmd_shader_bindings;
+
+        rl.gl.rlBindShaderBuffer(system.indirect_dispatch_args, b.compute_indirect_args);
+        rl.gl.rlBindShaderBuffer(system.indirect_draw_args, b.draw_indirect_args);
+        rl.gl.rlBindShaderBuffer(system.alive_count, b.alive_count);
+        rl.gl.rlBindShaderBuffer(system.prev_alive_count, b.prev_alive_count);
+    }
     rl.gl.rlComputeShaderDispatch(1, 1, 1);
     rl.gl.rlDisableShader();
 
@@ -337,33 +381,40 @@ pub fn compute(system: *ParticleSystem) void {
     system.particle_state_index = 1 - system.particle_state_index;
 }
 
-pub fn draw(system: *ParticleSystem, particle_shader: rl.Shader, viewport_height: f32) void {
+pub fn draw(system: *ParticleSystem, particle_shader: rl.Shader) void {
     const current_particle_state = system.particle_state[system.particle_state_index];
 
-    rl.beginShaderMode(particle_shader);
     rl.beginBlendMode(.additive);
+    rl.beginShaderMode(particle_shader);
 
-    rl.gl.rlBindShaderBuffer(system.atlases, 6);
-    rl.gl.rlBindShaderBuffer(current_particle_state, @intFromEnum(ComputeBufLoc.current_particle_state));
+    // --- Buffers ---
+    {
+        const b = &system.draw_shader_bindings;
+
+        rl.gl.rlBindShaderBuffer(current_particle_state, b.current_state);
+        rl.gl.rlBindShaderBuffer(system.atlases, b.atlases);
+    }
 
     _ = rl.gl.rlEnableVertexArray(system.vao);
     c_glad.glBindBuffer(c_glad.GL_DRAW_INDIRECT_BUFFER, system.indirect_draw_args);
 
-    rl.setShaderValue(particle_shader, 2, &viewport_height, .float);
-
     // --- Blur pass ---
-    const pass0: u32 = 0;
-    rl.setShaderValue(particle_shader, 7, &pass0, .int);
-    c_glad.glDrawArraysIndirect(c_glad.GL_TRIANGLES, null);
+    {
+        const u = &system.draw_shader_uniforms;
+        rl.setShaderValue(particle_shader, u.render_pass, &DRAW_BLUR_PASS, .int);
+        c_glad.glDrawArraysIndirect(c_glad.GL_TRIANGLES, null);
+    }
 
     // --- Clean pass ---
-    const pass1: u32 = 1;
-    rl.setShaderValue(particle_shader, 7, &pass1, .int);
-    c_glad.glDrawArraysIndirect(c_glad.GL_TRIANGLES, null);
+    {
+        const u = &system.draw_shader_uniforms;
+        rl.setShaderValue(particle_shader, u.render_pass, &DRAW_CLEAN_PASS, .int);
+        c_glad.glDrawArraysIndirect(c_glad.GL_TRIANGLES, null);
+    }
 
     rl.gl.rlDisableVertexArray();
-    rl.endBlendMode();
     rl.endShaderMode();
+    rl.endBlendMode();
 }
 
 pub fn spawnBurst(system: *ParticleSystem, pos: rl.Vector2, spec: Spec, emitter: Emitter) void {
@@ -383,7 +434,7 @@ pub fn spawnBurst(system: *ParticleSystem, pos: rl.Vector2, spec: Spec, emitter:
         const color_normalized: rl.Vector4 = spec.color.normalize();
         const u = &system.spawn_shader_uniforms;
 
-        rl.gl.rlSetUniform(u.max_particles, &system.max_particles, U_TYPE_INT, 1);
+        rl.gl.rlSetUniform(u.max_particles, &system.max_particle_count, U_TYPE_INT, 1);
         rl.gl.rlSetUniform(u.count, &emitter.count, U_TYPE_INT, 1);
         rl.gl.rlSetUniform(u.seed, &seed, U_TYPE_FLOAT, 1);
         rl.gl.rlSetUniform(u.position, &pos, U_TYPE_VEC2, 1);
@@ -411,11 +462,8 @@ pub fn spawnBurst(system: *ParticleSystem, pos: rl.Vector2, spec: Spec, emitter:
     }
 
     // --- Dispatch ---
-    {
-        const groups: u32 = (emitter.count + 1023) / 1024;
-        rl.gl.rlComputeShaderDispatch(groups, 1, 1);
-    }
-
+    const groups: u32 = (emitter.count + 1023) / 1024;
+    rl.gl.rlComputeShaderDispatch(groups, 1, 1);
     c_glad.glMemoryBarrier(c_glad.GL_SHADER_STORAGE_BARRIER_BIT);
     rl.gl.rlDisableShader();
 }

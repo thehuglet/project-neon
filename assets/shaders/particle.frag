@@ -1,8 +1,7 @@
 #version 430
 #extension GL_ARB_bindless_texture : require
 
-layout(location = 6) uniform vec2 viewportSize;
-layout(location = 7) uniform int renderPass;
+uniform int renderPass;
 
 in flat uvec2 fragHandle;
 in vec2 cleanUV;

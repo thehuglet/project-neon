@@ -48,6 +48,9 @@ pub fn main() !void {
 
     // --- Init context ---
     var ctx: Context = blk: {
+        const viewport_width: u32 = 1920;
+        const viewport_height: u32 = 1080;
+
         const atlases: std.EnumMap(enums.AtlasId, TextureAtlas) = .init(.{
             .cube = .init("assets/gen_textures/atlases/cube_atlas.png", 96, 96),
             .roto = .init("assets/gen_textures/atlases/roto_atlas.png", 96, 96),
@@ -80,10 +83,7 @@ pub fn main() !void {
             .ecs = ECS.init(allocator),
             .allocator = allocator,
             .rng = prng.random(),
-            .viewport_size = .{
-                .width = 1920,
-                .height = 1080,
-            },
+            .viewport_size = .{ .width = viewport_width, .height = viewport_height },
             .atlases = atlases,
             .gpu_atlases = gpu_atlases,
             .shaders = shaders,
@@ -95,6 +95,7 @@ pub fn main() !void {
                 allocator,
                 &gpu_atlases,
                 shaders.get(.particle).?,
+                viewport_height,
             ),
             .player_input_state = .{
                 .move_up = false,
@@ -268,5 +269,5 @@ fn update(ctx: *Context) void {
     system.cleanupDeadEntities(ctx);
 
     particle.compute(&ctx.particle_system);
-    particle.draw(&ctx.particle_system, ctx.shaders.get(.particle).?, @floatFromInt(ctx.viewport_size.height));
+    particle.draw(&ctx.particle_system, ctx.shaders.get(.particle).?);
 }
