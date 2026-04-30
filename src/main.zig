@@ -53,11 +53,13 @@ pub fn main() !void {
         const atlases: std.EnumMap(enums.AtlasId, TextureAtlas) = .init(.{
             .cube = .init("assets/gen_textures/atlases/cube_atlas.png", 96, 96),
             .roto = .init("assets/gen_textures/atlases/roto_atlas.png", 96, 96),
+            .roto_death = .init("assets/gen_textures/atlases/roto_death_atlas.png", 96, 96),
             .projectile = .init("assets/gen_textures/atlases/projectile_atlas.png", 96, 96),
         });
         var gpu_atlases: std.EnumMap(enums.AtlasId, GpuTextureAtlas) = .init(.{
             .cube = context.buildGpuTextureAtlas(atlases.get(.cube).?),
             .roto = context.buildGpuTextureAtlas(atlases.get(.roto).?),
+            .roto_death = context.buildGpuTextureAtlas(atlases.get(.roto_death).?),
             .projectile = context.buildGpuTextureAtlas(atlases.get(.projectile).?),
         });
         const shaders: std.EnumMap(enums.ShaderId, rl.Shader) = .init(.{
@@ -210,18 +212,24 @@ fn update(ctx: *Context) void {
     // --- Temp enemy spawning ---
     if (rl.isKeyPressed(.v)) {
         for (0..5) |_| {
-            _ = entity.roto_charger.spawn(ctx, .{ .x = 100, .y = 200 });
+            _ = entity.roto_charger.spawn(ctx, .{
+                .x = helpers.randomFloatRange(ctx.rng, 50.0, 150.0),
+                .y = helpers.randomFloatRange(ctx.rng, 50.0, 150.0),
+            });
         }
     }
 
     if (rl.isKeyPressed(.g)) {
         for (0..5) |_| {
-            _ = entity.roto_glow.spawn(ctx, .{ .x = 100, .y = 200 });
+            _ = entity.roto_glow.spawn(ctx, .{
+                .x = helpers.randomFloatRange(ctx.rng, 50.0, 150.0),
+                .y = helpers.randomFloatRange(ctx.rng, 50.0, 150.0),
+            });
         }
     }
 
     if (rl.isKeyDown(.f)) {
-        particle.spawnBurst(&ctx.particle_system, .{
+        particle.spawnBurst(&ctx.particle_system, ctx.rng, .{
             .x = 1920.0 * 0.5,
             .y = 1080.0 * 0.5,
         }, .{

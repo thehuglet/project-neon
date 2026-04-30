@@ -24,28 +24,32 @@ pub fn neonSpriteDeathParticles(ctx: *Context) void {
 
         particle.spawnBurst(
             &ctx.particle_system,
+            ctx.rng,
             transform.pos,
             .{
                 .texture = .{
-                    .atlas_id = neon_sprite.atlas_id,
-                    .cell_index = neon_sprite.sprite_index,
+                    .atlas_id = death_particles.texture.atlas_id,
+                    .cell_index = death_particles.texture.cell_index,
                 },
                 .speed = .{ .range = .{
-                    .min = 50.0,
-                    .max = 400.0,
+                    .min = 50.0 * death_particles.speed_factor,
+                    .max = 1000.0 * death_particles.speed_factor,
                 } },
                 .extra_velocity = extra_velocity,
                 .color = neon_sprite.color.alpha(0.3),
                 .clean_colorize_factor = 0.5,
-                .scale = .{ .flat = 60.0 },
+                .scale = .{ .flat = 140.0 },
                 .lifetime_sec = .{ .range = .{
                     .min = 0.5,
                     .max = 0.7,
                 } },
-                .alpha_over_t = 1.0,
+                .alpha_over_t = 0.0,
                 .scale_over_t = 0.0,
                 .hue_shift_over_t = 1.0,
-                .spin_speed = 1.0,
+                .spin_speed = .{ .range = .{
+                    .min = -8.0,
+                    .max = 8.0,
+                } },
             },
             .{
                 .count = death_particles.count,

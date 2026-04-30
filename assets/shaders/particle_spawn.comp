@@ -44,7 +44,7 @@ uniform float scaleOverT;
 uniform float alphaOverT;
 uniform float hueShiftOverT;
 uniform vec2 speed;
-uniform float spinSpeed;
+uniform vec2 spinSpeed;
 uniform vec2 extraVelocity;
 uniform float cleanColorizeFactor;
 
@@ -66,8 +66,8 @@ float rand(inout uint state) {
 
 float randRange(inout uint state, float minV, float maxV) {
     return mix(minV, maxV, rand(state));
-}
 
+}
 vec2 randCircle(inout uint rng, float radius) {
     float a = rand(rng) * 6.2831853;
     float r = sqrt(rand(rng));
@@ -97,7 +97,7 @@ void main() {
     p.initialLifetimeSec = lifetimeSecFinal;
     p.lifetimeSec = lifetimeSecFinal;
     p.rotation = initialRotation;
-    p.spinSpeed = spinSpeed;
+    p.spinSpeed = randRange(rng, spinSpeed.x, spinSpeed.y);
     p.scale = randRange(rng, scale.x, scale.y);
     p.scaleOverT = scaleOverT;
     p.alphaOverT = alphaOverT;

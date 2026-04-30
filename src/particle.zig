@@ -38,7 +38,7 @@ pub const Spec = struct {
     scale_over_t: f32 = 1.0,
     alpha_over_t: f32 = 1.0,
     hue_shift_over_t: f32 = 0.0,
-    spin_speed: f32 = 0.0,
+    spin_speed: types.F32FlatOrRange = .{ .flat = 0.0 },
     lifetime_sec: types.F32FlatOrRange = .{ .flat = 1.0 },
     texture: struct {
         atlas_id: enums.AtlasId,
@@ -408,7 +408,7 @@ pub fn draw(system: *ParticleSystem, particle_shader: rl.Shader) void {
     rl.endBlendMode();
 }
 
-pub fn spawnBurst(system: *ParticleSystem, pos: rl.Vector2, spec: Spec, emitter: Emitter) void {
+pub fn spawnBurst(system: *ParticleSystem, rng: std.Random, pos: rl.Vector2, spec: Spec, emitter: Emitter) void {
     // TODO: implement these properly:
     const spawn_radius: f32 = 0.0;
 
@@ -416,10 +416,11 @@ pub fn spawnBurst(system: *ParticleSystem, pos: rl.Vector2, spec: Spec, emitter:
 
     // --- Uniforms ---
     {
-        const seed: f32 = @floatCast(rl.getTime());
+        const seed: f32 = rng.float(f32);
         const scale: rl.Vector2 = spec.scale.toF32Range().toVec2();
         const speed: rl.Vector2 = spec.speed.toF32Range().toVec2();
         const lifetime_sec: rl.Vector2 = spec.lifetime_sec.toF32Range().toVec2();
+        const spin_speed: rl.Vector2 = spec.spin_speed.toF32Range().toVec2();
         const atlas_id: i32 = @intFromEnum(spec.texture.atlas_id);
         const atlas_cell_index: i32 = @intCast(spec.texture.cell_index);
         const color_normalized: rl.Vector4 = spec.color.normalize();
@@ -438,7 +439,7 @@ pub fn spawnBurst(system: *ParticleSystem, pos: rl.Vector2, spec: Spec, emitter:
         rl.gl.rlSetUniform(u.alpha_over_t, &spec.alpha_over_t, U_TYPE_FLOAT, 1);
         rl.gl.rlSetUniform(u.hue_shift_over_t, &spec.hue_shift_over_t, U_TYPE_FLOAT, 1);
         rl.gl.rlSetUniform(u.speed, &speed, U_TYPE_VEC2, 1);
-        rl.gl.rlSetUniform(u.spin_speed, &spec.spin_speed, U_TYPE_FLOAT, 1);
+        rl.gl.rlSetUniform(u.spin_speed, &spin_speed, U_TYPE_VEC2, 1);
         rl.gl.rlSetUniform(u.extra_velocity, &spec.extra_velocity, U_TYPE_VEC2, 1);
         rl.gl.rlSetUniform(u.lifetime_sec, &lifetime_sec, U_TYPE_VEC2, 1);
         rl.gl.rlSetUniform(u.clean_colorize_factor, &spec.clean_colorize_factor, U_TYPE_FLOAT, 1);

@@ -10,6 +10,7 @@ pub fn spawn(ctx: *Context, pos: rl.Vector2) EntityId {
     const entity_id = ctx.ecs.assignEntityId();
 
     const max_hp = 100.0;
+    const atlas_sprite_index = 1;
 
     ctx.ecs.addComponent(entity_id, c.TargetsPlayer{});
     ctx.ecs.addComponent(entity_id, c.Motion{
@@ -31,7 +32,7 @@ pub fn spawn(ctx: *Context, pos: rl.Vector2) EntityId {
     });
     ctx.ecs.addComponent(entity_id, c.NeonSprite{
         .atlas_id = .roto,
-        .sprite_index = 1,
+        .sprite_index = atlas_sprite_index,
         .color = rl.Color.init(255, 0, 128, 255),
     });
     ctx.ecs.addComponent(entity_id, c.SpinCosmeticAccelScaled{
@@ -52,6 +53,10 @@ pub fn spawn(ctx: *Context, pos: rl.Vector2) EntityId {
     });
     ctx.ecs.addComponent(entity_id, c.DeathParticles{
         .count = 10,
+        .texture = .{
+            .atlas_id = .roto_death,
+            .cell_index = atlas_sprite_index,
+        },
     });
 
     return entity_id;

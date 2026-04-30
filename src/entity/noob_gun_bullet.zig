@@ -58,8 +58,14 @@ pub fn spawn(
         .amount = stats.projectile.impact.lumen_gain,
     });
     ctx.ecs.addComponent(entity_id, c.DeathParticles{
-        .count = 15,
+        .count = 5,
         .extra_velocity_factor = 0.1,
+        .scale_factor = 0.3,
+        .speed_factor = 0.3,
+        .texture = .{
+            .atlas_id = .projectile,
+            .cell_index = 0,
+        },
     });
 
     return entity_id;

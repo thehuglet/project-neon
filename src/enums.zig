@@ -1,6 +1,7 @@
 pub const AtlasId = enum {
     cube,
     roto,
+    roto_death,
     projectile,
 };
 

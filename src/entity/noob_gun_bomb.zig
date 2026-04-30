@@ -106,6 +106,7 @@ pub fn onDeath(ctx: *Context, spawner: EntityId, data: c.OnDeath.Data) void {
 
             particle.spawnBurst(
                 &ctx.particle_system,
+                ctx.rng,
                 spawner_transform.pos,
                 spec,
                 .{
@@ -120,6 +121,7 @@ pub fn onDeath(ctx: *Context, spawner: EntityId, data: c.OnDeath.Data) void {
 
             particle.spawnBurst(
                 &ctx.particle_system,
+                ctx.rng,
                 spawner_transform.pos,
                 spec,
                 .{
