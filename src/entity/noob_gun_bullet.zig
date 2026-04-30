@@ -47,6 +47,7 @@ pub fn spawn(
         .mask = .{ .enemy = true },
         .damage = stats.projectile.impact.damage,
     });
+    ctx.ecs.addComponent(entity_id, c.HitHistory{});
     ctx.ecs.addComponent(entity_id, c.SpinCosmetic{
         .clockwise = true,
         .speed = 60.0,

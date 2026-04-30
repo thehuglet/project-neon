@@ -80,13 +80,25 @@ pub fn handleCollisions(ctx: *Context) void {
                     }
                 };
 
-                if (collides and hitbox.active) {
+                const receiver: EntityId = hurt_ids.items[i];
+                const maybe_hit_history = item.get(c.HitHistory);
+                var already_was_hit = false;
+
+                if (maybe_hit_history) |hit_history| {
+                    already_was_hit = hit_history.contains(receiver);
+                }
+
+                if (collides and hitbox.active and !already_was_hit) {
                     hit(
                         ctx,
-                        hurt_ids.items[i],
+                        receiver,
                         item.entity_id,
                         hitbox,
                     );
+
+                    if (maybe_hit_history) |hit_history| {
+                        hit_history.add(receiver);
+                    }
                 }
             }
         }

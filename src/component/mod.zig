@@ -12,6 +12,7 @@ pub const HealthLives = @import("health_lives.zig").HealthLives;
 // Collisions
 pub const Hitbox = @import("hitbox.zig").Hitbox;
 pub const Hurtbox = @import("hurtbox.zig").Hurtbox;
+pub const HitHistory = @import("hit_history.zig").HitHistory;
 
 // Visual
 pub const NeonSprite = @import("neon_sprite.zig").NeonSprite;
@@ -52,6 +53,7 @@ pub const Registry = [_]type{
     // Collisions
     Hitbox,
     Hurtbox,
+    HitHistory,
 
     // Visual
     NeonSprite,

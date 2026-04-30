@@ -25,7 +25,7 @@ const Projectile = union(enum) {
     impact: struct {
         damage: f32,
         lumen_gain: f32 = 0.0,
-        piercing: u32 = 1,
+        piercing: u32 = 10,
     },
     explosion: struct {
         damage: f32,
