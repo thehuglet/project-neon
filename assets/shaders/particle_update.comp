@@ -19,7 +19,7 @@ struct ParticleState {
     // --- 16 ---
     float alphaOverT;
     float hueShiftOverT;
-    uint _pad1;
+    float cleanColorizeFactor;
     uint _pad2;
 };
 
@@ -54,6 +54,8 @@ void main() {
         float speed = length(p.velocity);
         float drag = linearDamp + quadraticDamp * speed;
         p.velocity *= exp(-drag * deltaTime);
+
+        p.rotation += p.spinSpeed * deltaTime;
 
         nextState[outIndex] = p;
     }

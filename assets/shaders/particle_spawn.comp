@@ -21,7 +21,7 @@ struct ParticleState {
     // --- 16 ---
     float alphaOverT;
     float hueShiftOverT;
-    uint _pad1;
+    float cleanColorizeFactor;
     uint _pad2;
 };
 
@@ -46,6 +46,7 @@ uniform float hueShiftOverT;
 uniform vec2 speed;
 uniform float spinSpeed;
 uniform vec2 extraVelocity;
+uniform float cleanColorizeFactor;
 
 uint pcgHash(uint seed) {
     uint state = seed * 747796405u + 2891336453u;
@@ -101,6 +102,7 @@ void main() {
     p.scaleOverT = scaleOverT;
     p.alphaOverT = alphaOverT;
     p.hueShiftOverT = hueShiftOverT;
+    p.cleanColorizeFactor = cleanColorizeFactor;
 
     nextState[outIndex] = p;
 }

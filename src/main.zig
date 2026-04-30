@@ -210,7 +210,13 @@ fn update(ctx: *Context) void {
     // --- Temp enemy spawning ---
     if (rl.isKeyPressed(.v)) {
         for (0..5) |_| {
-            _ = entity.roto_charger.spawn(&ctx.ecs, ctx.rng, ctx.atlases.get(.roto).?, .{ .x = 100, .y = 200 });
+            _ = entity.roto_charger.spawn(ctx, .{ .x = 100, .y = 200 });
+        }
+    }
+
+    if (rl.isKeyPressed(.g)) {
+        for (0..5) |_| {
+            _ = entity.roto_glow.spawn(ctx, .{ .x = 100, .y = 200 });
         }
     }
 
@@ -265,6 +271,7 @@ fn update(ctx: *Context) void {
     system.lifetimeDespawn(ctx);
     system.zeroHealthDeath(ctx);
     system.onDeath(ctx);
+    system.neonSpriteDeathParticles(ctx);
     system.cleanupDeadEntities(ctx);
 
     particle.compute(&ctx.particle_system);

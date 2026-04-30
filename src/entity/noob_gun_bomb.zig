@@ -19,7 +19,6 @@ pub fn spawn(
     ctx: *Context,
     owner: EntityId,
     stats: weapon.WeaponPartStats,
-    atlas: TextureAtlas,
     pos: rl.Vector2,
     facing_angle: f32,
 ) EntityId {
@@ -45,7 +44,7 @@ pub fn spawn(
         .velocity = math.angleToVec2(facing_angle).scale(1000.0),
     });
     ctx.ecs.addComponent(entity_id, c.NeonSprite{
-        .atlas = atlas,
+        .atlas_id = .projectile,
         .sprite_index = 0,
         .color = rl.Color.init(255, 100, 0, 255),
         .scale = 1.0,
@@ -93,19 +92,40 @@ pub fn onDeath(ctx: *Context, spawner: EntityId, data: c.OnDeath.Data) void {
                 explosion.collision_mask,
             );
 
-            particle.spawnBurst(&ctx.particle_system, spawner_transform.pos, .{
+            var spec = particle.Spec{
                 .color = rl.Color.init(255, 100, 40, 255).alpha(0.35),
                 .texture = .{ .atlas_id = .projectile, .cell_index = 0 },
                 .speed = .{ .range = .{ .min = 80.0, .max = 1000.0 } },
-                .scale = .{ .range = .{ .min = 70.0, .max = 100.0 } },
+                .scale = .{ .range = .{ .min = 100.0, .max = 150.0 } },
                 .extra_velocity = spawner_motion.velocity.scale(0.4),
                 .scale_over_t = 0.0,
                 .alpha_over_t = 0.0,
                 .hue_shift_over_t = 1.0,
                 .lifetime_sec = .{ .range = .{ .min = 0.3, .max = 1.0 } },
-            }, .{
-                .count = 100,
-            });
+            };
+
+            particle.spawnBurst(
+                &ctx.particle_system,
+                spawner_transform.pos,
+                spec,
+                .{
+                    .count = 150,
+                },
+            );
+
+            spec.speed = .{ .range = .{ .min = 400.0, .max = 4000.0 } };
+            spec.scale = .{ .range = .{ .min = 50.0, .max = 60.0 } };
+            spec.lifetime_sec = .{ .range = .{ .min = 0.2, .max = 0.7 } };
+            spec.scale_over_t = 0.2;
+
+            particle.spawnBurst(
+                &ctx.particle_system,
+                spawner_transform.pos,
+                spec,
+                .{
+                    .count = 100,
+                },
+            );
         },
     }
 }

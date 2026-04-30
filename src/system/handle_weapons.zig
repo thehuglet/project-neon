@@ -14,7 +14,6 @@ const weapon = @import("weapon");
 
 pub fn handleWeapons(ctx: *Context) void {
     const dt: f32 = rl.getFrameTime();
-    const projectile_atlas = ctx.atlases.get(.projectile).?;
 
     var query = ctx.ecs.query(.{
         c.WeaponUseIntent,
@@ -46,7 +45,6 @@ pub fn handleWeapons(ctx: *Context) void {
                 weapon.usePrimary(
                     ctx,
                     slotted_weapon.id,
-                    projectile_atlas,
                     item.entity_id,
                     transform,
                     ctx.mouse_pos,
@@ -60,7 +58,6 @@ pub fn handleWeapons(ctx: *Context) void {
                 weapon.useSecondary(
                     ctx,
                     slotted_weapon.id,
-                    projectile_atlas,
                     item.entity_id,
                     transform,
                     ctx.mouse_pos,

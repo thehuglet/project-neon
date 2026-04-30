@@ -10,6 +10,7 @@ in vec4 vColor;
 in float vLifetimeT;
 in float vHueShiftOverT;
 in float vAlphaOverT;
+in float vCleanColorizeFactor;
 
 out vec4 finalColor;
 
@@ -31,14 +32,19 @@ void main() {
     vec2 uv = (renderPass == 0) ? blurUV : cleanUV;
     vec4 col = texture(tex, uv);
 
-    // float alphaOverTFactor = clamp(1.0 + (vAlphaOverT - 1.0) * (1.0 - vLifetimeT), 0.0, 1.0);
     float alphaOverTFactor = vLifetimeT;
 
     float hueShiftOverTFactor = vHueShiftOverT * (1.0 - vLifetimeT);
     vec3 shifted = fastShiftHue(vColor.rgb, hueShiftOverTFactor);
+
     vec4 tintColor = vec4(shifted, vColor.a * alphaOverTFactor);
 
-    col *= tintColor;
+    if (renderPass == 0) {
+        col *= tintColor;
+    } else {
+        vec4 tint = mix(vec4(1.0), tintColor, vCleanColorizeFactor);
+        col *= tint;
+    }
 
     finalColor = col;
 }

@@ -80,7 +80,7 @@ pub fn handleCollisions(ctx: *Context) void {
                     }
                 };
 
-                if (collides) {
+                if (collides and hitbox.active) {
                     hit(
                         ctx,
                         hurt_ids.items[i],
@@ -93,7 +93,12 @@ pub fn handleCollisions(ctx: *Context) void {
     }
 }
 
-fn hit(ctx: *Context, receiver: EntityId, attacker: EntityId, hitbox: *c.Hitbox) void {
+fn hit(
+    ctx: *Context,
+    receiver: EntityId,
+    attacker: EntityId,
+    hitbox: *c.Hitbox,
+) void {
     dmg_application: {
         const receiver_health: *c.Health = ctx.ecs.getComponent(receiver, c.Health) orelse {
             break :dmg_application;
@@ -147,9 +152,13 @@ fn hit(ctx: *Context, receiver: EntityId, attacker: EntityId, hitbox: *c.Hitbox)
             break :impact_piercing;
         };
 
-        // TODO: this is temporary, piercing currently doesnt get decreased, fix this
-        if (stats.stats.projectile == .impact and stats.stats.projectile.impact.piercing == 1) {
-            ctx.ecs.addComponent(attacker, c.Dead{});
+        if (stats.stats.projectile == .impact) {
+            stats.stats.projectile.impact.piercing -= 1;
+
+            if (stats.stats.projectile.impact.piercing <= 0) {
+                hitbox.active = false;
+                ctx.ecs.addComponent(attacker, c.Dead{});
+            }
         }
 
         if (stats.stats.projectile == .explosion) {

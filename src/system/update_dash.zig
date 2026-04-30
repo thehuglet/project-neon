@@ -51,7 +51,7 @@ fn spawnTrailGhostEntity(ctx: *Context, transform: c.Transform, neon_sprite: *c.
     const lifetime_sec: f32 = 0.1;
 
     const neon_sprite_new = c.NeonSprite{
-        .atlas = neon_sprite.atlas,
+        .atlas_id = neon_sprite.atlas_id,
         .sprite_index = neon_sprite.sprite_index,
         .color = neon_sprite.color.alpha(0.4),
         .rotation_rad = neon_sprite.rotation_rad,

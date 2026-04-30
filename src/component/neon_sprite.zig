@@ -1,9 +1,10 @@
 const rl = @import("raylib");
 
-const TextureAtlas = @import("context").TextureAtlas;
+const enums = @import("enums");
+// const TextureAtlas = @import("context").TextureAtlas;
 
 pub const NeonSprite = struct {
-    atlas: TextureAtlas,
+    atlas_id: enums.AtlasId,
     sprite_index: usize,
     color: rl.Color,
     rotation_rad: f32 = 0.0,

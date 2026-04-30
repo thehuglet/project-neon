@@ -29,7 +29,7 @@ struct ParticleState {
     // --- 16 ---
     float alphaOverT;
     float hueShiftOverT;
-    uint _pad1;
+    float cleanColorizeFactor;
     uint _pad2;
 };
 
@@ -48,6 +48,7 @@ out vec4 vColor;
 out float vLifetimeT;
 out float vHueShiftOverT;
 out float vAlphaOverT;
+out float vCleanColorizeFactor;
 
 void main() {
     int index = gl_InstanceID;
@@ -60,6 +61,7 @@ void main() {
     vLifetimeT = lifetimeT;
     vHueShiftOverT = p.hueShiftOverT;
     vAlphaOverT = p.alphaOverT;
+    vCleanColorizeFactor = p.cleanColorizeFactor;
 
     fragHandle = atlas.handle;
     uint col = p.atlasCellIndex % atlas.grid.x;

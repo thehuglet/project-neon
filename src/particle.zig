@@ -27,17 +27,22 @@ const MAX_GPU_TEXTURE_ATLASES = 64;
 
 pub const Spec = struct {
     color: rl.Color = .pink,
-    speed: types.F32FlatOrRange = .{ .flat = 100.0 },
-    scale: types.F32FlatOrRange = .{ .flat = 1.0 },
+    clean_colorize_factor: f32 = 1.0,
+    speed: types.F32FlatOrRange = .{ .range = .{
+        .min = 10.0,
+        .max = 800.0,
+    } },
+    scale: types.F32FlatOrRange = .{ .flat = 100.0 },
     /// Extra velocity applied on top of the speed used in rand radial
     extra_velocity: rl.Vector2 = .{ .x = 0.0, .y = 0.0 },
     scale_over_t: f32 = 1.0,
     alpha_over_t: f32 = 1.0,
     hue_shift_over_t: f32 = 0.0,
-    lifetime_sec: types.F32FlatOrRange = .{ .flat = 3.0 },
+    spin_speed: f32 = 0.0,
+    lifetime_sec: types.F32FlatOrRange = .{ .flat = 1.0 },
     texture: struct {
         atlas_id: enums.AtlasId,
-        cell_index: u32,
+        cell_index: usize,
     },
 };
 
@@ -76,8 +81,8 @@ const ParticleState = extern struct {
     scale_over_t: f32 = 0.0,
     // --- 16 ---
     alpha_over_t: f32 = 0.0,
-    hueShiftOverT: f32 = 0.0,
-    _pad1: u32 = 0,
+    hue_shift_over_t: f32 = 0.0,
+    clean_colorize_factor: f32 = 0.0,
     _pad2: u32 = 0,
 };
 
@@ -103,10 +108,12 @@ pub const ParticleSystem = struct {
         speed: i32,
         extra_velocity: i32,
         scale: i32,
+        spin_speed: i32,
         scale_over_t: i32,
         alpha_over_t: i32,
         hue_shift_over_t: i32,
         lifetime_sec: i32,
+        clean_colorize_factor: i32,
     },
     draw_shader_uniforms: struct {
         projection: i32,
@@ -259,10 +266,12 @@ pub fn init(
             .speed = uni(spawn_shader, "speed"),
             .extra_velocity = uni(spawn_shader, "extraVelocity"),
             .scale = uni(spawn_shader, "scale"),
+            .spin_speed = uni(spawn_shader, "spinSpeed"),
             .scale_over_t = uni(spawn_shader, "scaleOverT"),
             .alpha_over_t = uni(spawn_shader, "alphaOverT"),
             .hue_shift_over_t = uni(spawn_shader, "hueShiftOverT"),
             .lifetime_sec = uni(spawn_shader, "lifetimeSec"),
+            .clean_colorize_factor = uni(spawn_shader, "cleanColorizeFactor"),
         },
         .draw_shader_uniforms = .{
             .projection = uni(draw_shader.id, "projection"),
@@ -429,8 +438,10 @@ pub fn spawnBurst(system: *ParticleSystem, pos: rl.Vector2, spec: Spec, emitter:
         rl.gl.rlSetUniform(u.alpha_over_t, &spec.alpha_over_t, U_TYPE_FLOAT, 1);
         rl.gl.rlSetUniform(u.hue_shift_over_t, &spec.hue_shift_over_t, U_TYPE_FLOAT, 1);
         rl.gl.rlSetUniform(u.speed, &speed, U_TYPE_VEC2, 1);
+        rl.gl.rlSetUniform(u.spin_speed, &spec.spin_speed, U_TYPE_FLOAT, 1);
         rl.gl.rlSetUniform(u.extra_velocity, &spec.extra_velocity, U_TYPE_VEC2, 1);
         rl.gl.rlSetUniform(u.lifetime_sec, &lifetime_sec, U_TYPE_VEC2, 1);
+        rl.gl.rlSetUniform(u.clean_colorize_factor, &spec.clean_colorize_factor, U_TYPE_FLOAT, 1);
     }
 
     // --- Buffers ---

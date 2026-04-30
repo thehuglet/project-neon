@@ -93,7 +93,6 @@ pub fn createWeaponInstance(weapon_id: WeaponId) WeaponInstance {
 pub fn usePrimary(
     ctx: *Context,
     weapon_id: WeaponId,
-    projectile_atlas: TextureAtlas,
     entity: EntityId,
     entity_transform: *c.Transform,
     mouse_pos: rl.Vector2,
@@ -119,7 +118,6 @@ pub fn usePrimary(
                 ctx,
                 entity,
                 weapon_part_stats,
-                projectile_atlas,
                 entity_transform.pos,
                 math.vec2ToAngle(
                     math.direction(entity_transform.pos, mouse_pos),
@@ -132,7 +130,6 @@ pub fn usePrimary(
 pub fn useSecondary(
     ctx: *Context,
     weapon_id: WeaponId,
-    projectile_atlas: TextureAtlas,
     entity: EntityId,
     entity_transform: *c.Transform,
     mouse_pos: rl.Vector2,
@@ -158,7 +155,6 @@ pub fn useSecondary(
                 ctx,
                 entity,
                 weapon_part_stats,
-                projectile_atlas,
                 entity_transform.pos,
                 math.vec2ToAngle(
                     math.direction(entity_transform.pos, mouse_pos),

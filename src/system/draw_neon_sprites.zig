@@ -26,6 +26,8 @@ pub fn drawNeonSprites(ctx: *Context) void {
             const transform: *c.Transform = item.get(c.Transform).?;
             const neon_sprite: *c.NeonSprite = item.get(c.NeonSprite).?;
 
+            const atlas = ctx.atlases.get(neon_sprite.atlas_id).?;
+
             var alpha: f32 = @as(f32, @floatFromInt(neon_sprite.color.a)) / 255.0;
             var alpha_scale: f32 = 1.0;
             var scale: f32 = neon_sprite.scale;
@@ -44,7 +46,7 @@ pub fn drawNeonSprites(ctx: *Context) void {
             }
 
             const src: rl.Rectangle = textureSource(
-                neon_sprite.atlas,
+                atlas,
                 neon_sprite.sprite_index,
                 true,
             );
@@ -56,7 +58,7 @@ pub fn drawNeonSprites(ctx: *Context) void {
             );
 
             drawTextureNeonSprite(
-                neon_sprite.atlas.texture,
+                atlas.texture,
                 src,
                 draw_params.dest,
                 draw_params.origin,
@@ -78,6 +80,8 @@ pub fn drawNeonSprites(ctx: *Context) void {
             const transform: *c.Transform = item.get(c.Transform).?;
             const neon_sprite: *c.NeonSprite = item.get(c.NeonSprite).?;
 
+            const atlas = ctx.atlases.get(neon_sprite.atlas_id).?;
+
             var alpha: f32 = @as(f32, @floatFromInt(neon_sprite.color.a)) / 255.0;
             var scale: f32 = neon_sprite.scale;
             var hue_shift: f32 = 0.0;
@@ -90,7 +94,7 @@ pub fn drawNeonSprites(ctx: *Context) void {
             }
 
             const src: rl.Rectangle = textureSource(
-                neon_sprite.atlas,
+                atlas,
                 neon_sprite.sprite_index,
                 false,
             );
@@ -111,7 +115,7 @@ pub fn drawNeonSprites(ctx: *Context) void {
             }
 
             rl.drawTexturePro(
-                neon_sprite.atlas.texture,
+                atlas.texture,
                 src,
                 draw_params.dest,
                 draw_params.origin,

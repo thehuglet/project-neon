@@ -1,9 +1,9 @@
-const EntityId = @import("ecs").EntityId;
-const Context = @import("context").Context;
-
 const rl = @import("raylib");
 const c = @import("component");
 const weapon = @import("weapon");
+
+const Context = @import("context").Context;
+const EntityId = @import("ecs").EntityId;
 
 pub fn spawn(ctx: *Context, pos: rl.Vector2) EntityId {
     const entity_id = ctx.ecs.assignEntityId();
@@ -31,7 +31,7 @@ pub fn spawn(ctx: *Context, pos: rl.Vector2) EntityId {
         .accel_time = 0.01,
     });
     ecs.addComponent(entity_id, c.NeonSprite{
-        .atlas = ctx.atlases.get(.cube).?,
+        .atlas_id = .cube,
         .sprite_index = 8,
         .color = rl.Color.init(100, 200, 255, 255),
     });

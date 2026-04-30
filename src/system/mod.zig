@@ -31,3 +31,4 @@ pub const updateRingOverTLifetime = @import("update_ring_over_t_lifetime.zig").u
 pub const drawStarfieldBackground = @import("draw_starfield_background.zig").drawStarfieldBackground;
 pub const updateCanvasMousePos = @import("update_canvas_mouse_pos.zig").updateCanvasMousePos;
 pub const cleanupDeadEntities = @import("cleanup_dead_entities.zig").cleanupDeadEntities;
+pub const neonSpriteDeathParticles = @import("neon_sprite_death_particles.zig").neonSpriteDeathParticles;
