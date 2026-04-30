@@ -19,10 +19,6 @@ const particle = @import("particle");
 const types = @import("types");
 
 pub fn main() !void {
-    var threaded_io: std.Io.Threaded = .init_single_threaded;
-    const io = threaded_io.io();
-    defer threaded_io.deinit();
-    const time_now = std.Io.Clock.now(.awake, io).toNanoseconds();
     const allocator = switch (builtin.mode) {
         .Debug, .ReleaseSafe => blk: {
             var gpa = std.heap.DebugAllocator(.{}).init;
@@ -30,8 +26,11 @@ pub fn main() !void {
         },
         .ReleaseFast, .ReleaseSmall => std.heap.c_allocator,
     };
-    const rng_seed: u64 = @intCast(time_now);
-    var prng = std.Random.DefaultPrng.init(rng_seed);
+    var threaded_io: std.Io.Threaded = .init_single_threaded;
+    const io = threaded_io.io();
+    defer threaded_io.deinit();
+    const time_now = std.Io.Clock.now(.awake, io).toNanoseconds();
+    var prng = std.Random.DefaultPrng.init(@intCast(time_now));
 
     // --- Init raylib ---
     rl.setConfigFlags(rl.ConfigFlags{

@@ -6,11 +6,21 @@ pub const EntityId = @import("entity_id_pool.zig").EntityId;
 const EntityIdPool = @import("entity_id_pool.zig").EntityIdPool;
 const SparseComponentSet = @import("sparse_component_set.zig").SparseComponentSet;
 
+fn componentFieldName(comptime T: type) []const u8 {
+    const full = @typeName(T);
+    const type_name = if (std.mem.lastIndexOfScalar(u8, full, '.')) |idx|
+        full[idx + 1 ..]
+    else
+        full;
+    return "component_data_" ++ type_name;
+}
+
 const ComponentTag = blk: {
     var field_names: [ComponentRegistry.len][]const u8 = undefined;
     var field_values: [ComponentRegistry.len]u8 = undefined;
-    for (ComponentRegistry, 0..) |entry, i| {
-        field_names[i] = entry.field_name;
+    for (ComponentRegistry, 0..) |T, i| {
+        // field_names[i] = entry.field_name;
+        field_names[i] = componentFieldName(T);
         field_values[i] = @intCast(i);
     }
     break :blk @Enum(u8, .exhaustive, &field_names, &field_values);
@@ -20,9 +30,9 @@ const ComponentUnion = blk: {
     const field_count = ComponentRegistry.len;
     var field_names: [field_count][]const u8 = undefined;
     var field_types: [field_count]type = undefined;
-    for (ComponentRegistry, 0..) |entry, i| {
-        field_names[i] = entry.field_name;
-        field_types[i] = entry.component_type;
+    for (ComponentRegistry, 0..) |T, i| {
+        field_names[i] = componentFieldName(T);
+        field_types[i] = T;
     }
     break :blk @Union(.auto, ComponentTag, &field_names, &field_types, &@splat(.{}));
 };
@@ -31,9 +41,9 @@ const ComponentState = blk: {
     const field_count = ComponentRegistry.len;
     var field_names: [field_count][]const u8 = undefined;
     var field_types: [field_count]type = undefined;
-    for (ComponentRegistry, 0..) |entry, i| {
-        field_names[i] = entry.field_name;
-        field_types[i] = SparseComponentSet(entry.component_type);
+    for (ComponentRegistry, 0..) |T, i| {
+        field_names[i] = componentFieldName(T);
+        field_types[i] = SparseComponentSet(T);
     }
     break :blk @Struct(.auto, null, &field_names, &field_types, &@splat(.{}));
 };
@@ -131,9 +141,9 @@ pub const ECS = struct {
 
     pub fn init(allocator: std.mem.Allocator) ECS {
         var ecs: ECS = undefined;
-        inline for (ComponentRegistry) |entry| {
-            const set: SparseComponentSet(entry.component_type) = .init(allocator);
-            @field(&ecs.components, entry.field_name) = set;
+        inline for (ComponentRegistry) |T| {
+            const set: SparseComponentSet(T) = .init(allocator);
+            @field(&ecs.components, componentFieldName(T)) = set;
         }
 
         ecs.allocator = allocator;
@@ -151,8 +161,8 @@ pub const ECS = struct {
     }
 
     pub fn deinit(self: *ECS) void {
-        inline for (ComponentRegistry) |C| {
-            @field(&self.components, C.field_name).deinit();
+        inline for (ComponentRegistry) |T| {
+            @field(&self.components, componentFieldName(T)).deinit();
         }
 
         self.operation_queue.deinit(self.allocator);
@@ -186,14 +196,14 @@ pub const ECS = struct {
         }
 
         const component = lookup_component_type: {
-            inline for (ComponentRegistry) |entry| {
-                if (ComponentType != entry.component_type) {
+            inline for (ComponentRegistry) |T| {
+                if (ComponentType != T) {
                     continue;
                 }
 
                 break :lookup_component_type @unionInit(
                     ComponentUnion,
-                    entry.field_name,
+                    componentFieldName(T),
                     value,
                 );
             }
@@ -212,25 +222,25 @@ pub const ECS = struct {
         };
     }
 
-    pub fn removeComponent(self: *ECS, entity_id: EntityId, comptime T: type) void {
+    pub fn removeComponent(self: *ECS, entity_id: EntityId, comptime C: type) void {
         if (!self.entity_id_pool.isAlive(entity_id)) {
             return;
         }
 
         comptime var tag: ?ComponentTag = null;
 
-        inline for (ComponentRegistry, 0..) |entry, i| {
-            if (T == entry.component_type) {
+        inline for (ComponentRegistry, 0..) |T, i| {
+            if (C == T) {
                 tag = @as(ComponentTag, @enumFromInt(i));
                 break;
             }
         }
         const tag_value = tag orelse {
-            @compileError("No component of type " ++ @typeName(T) ++ " registered in the ECS");
+            @compileError("No component of type " ++ @typeName(C) ++ " registered in the ECS");
         };
 
         if (!self.query_active) {
-            componentFieldPtr(&self.components, T).removeComponent(entity_id.index);
+            componentFieldPtr(&self.components, C).removeComponent(entity_id.index);
 
             return;
         }
@@ -293,20 +303,20 @@ pub const ECS = struct {
                 },
                 .remove_component => |data| {
                     if (!self.entity_id_pool.isAlive(data.entity_id)) continue;
-                    inline for (ComponentRegistry, 0..) |entry, i| {
+                    inline for (ComponentRegistry, 0..) |T, i| {
                         if (@intFromEnum(data.tag) == i) {
-                            const field_ptr = componentFieldPtr(&self.components, entry.component_type);
+                            const field_ptr = componentFieldPtr(&self.components, T);
                             field_ptr.removeComponent(data.entity_id.index);
                             break;
                         }
                     }
                 },
                 .delete_entity => |data| {
-                    inline for (ComponentRegistry) |entry| {
-                        if (self.hasComponent(data.entity_id, entry.component_type)) {
+                    inline for (ComponentRegistry) |T| {
+                        if (self.hasComponent(data.entity_id, T)) {
                             const field_ptr = componentFieldPtr(
                                 &self.components,
-                                entry.component_type,
+                                T,
                             );
                             field_ptr.removeComponent(data.entity_id.index);
                         }
@@ -355,20 +365,20 @@ pub const ECS = struct {
     }
 
     fn deleteEntityImmediate(self: *ECS, entity_id: EntityId) void {
-        inline for (ComponentRegistry) |entry| {
-            if (self.hasComponent(entity_id, entry.component_type)) {
-                componentFieldPtr(&self.components, entry.component_type).removeComponent(entity_id.index);
+        inline for (ComponentRegistry) |T| {
+            if (self.hasComponent(entity_id, T)) {
+                componentFieldPtr(&self.components, T).removeComponent(entity_id.index);
             }
         }
         self.entity_id_pool.free(entity_id);
     }
 };
 
-fn componentFieldPtr(comps: *ComponentState, comptime T: type) *SparseComponentSet(T) {
-    inline for (ComponentRegistry) |entry| {
-        if (T == entry.component_type) {
-            return &@field(comps, entry.field_name);
+fn componentFieldPtr(comps: *ComponentState, comptime C: type) *SparseComponentSet(C) {
+    inline for (ComponentRegistry) |T| {
+        if (C == T) {
+            return &@field(comps, componentFieldName(T));
         }
     }
-    @compileError("No component of type " ++ @typeName(T) ++ " registered in the ECS");
+    @compileError("No component of type " ++ @typeName(C) ++ " registered in the ECS");
 }
