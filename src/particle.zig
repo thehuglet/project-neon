@@ -369,6 +369,9 @@ pub fn draw(system: *ParticleSystem, particle_shader: rl.Shader) void {
     rl.beginBlendMode(.additive);
     rl.beginShaderMode(particle_shader);
 
+    _ = rl.gl.rlEnableVertexArray(system.vao);
+    c_glad.glBindBuffer(c_glad.GL_DRAW_INDIRECT_BUFFER, system.indirect_draw_args);
+
     // --- Buffers ---
     {
         const b = &system.draw_shader_bindings;
@@ -376,9 +379,6 @@ pub fn draw(system: *ParticleSystem, particle_shader: rl.Shader) void {
         rl.gl.rlBindShaderBuffer(current_particle_state, b.current_state);
         rl.gl.rlBindShaderBuffer(system.atlases, b.atlases);
     }
-
-    _ = rl.gl.rlEnableVertexArray(system.vao);
-    c_glad.glBindBuffer(c_glad.GL_DRAW_INDIRECT_BUFFER, system.indirect_draw_args);
 
     // --- Blur pass ---
     {
